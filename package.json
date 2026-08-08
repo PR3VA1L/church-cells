@@ -1,0 +1,32 @@
+{
+  "name": "church-cell-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
+    "d3-scale": "^4.0.2",
+    "date-fns": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.29.0",
+    "react": "^19.2.8",
+    "react-d3-cloud": "^1.0.6",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0"
+  }
+}
