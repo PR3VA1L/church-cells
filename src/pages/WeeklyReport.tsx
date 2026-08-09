@@ -106,19 +106,17 @@ const WeeklyReport = () => {
           <h1>Weekly Prayer Reports</h1>
           <p className="text-muted">Review past reports and track spiritual growth.</p>
         </div>
-        {!isAdmin && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-outline" onClick={() => setIsSettingsOpen(true)}>
-              <Settings size={18} /> Settings
-            </button>
-            <button className="btn btn-primary" onClick={() => setIsFormOpen(!isFormOpen)}>
-              {isFormOpen ? 'Cancel' : <><Plus size={18} /> Submit New Report</>}
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-outline" onClick={() => setIsSettingsOpen(true)}>
+            <Settings size={18} /> Settings
+          </button>
+          <button className="btn btn-primary" onClick={() => setIsFormOpen(!isFormOpen)}>
+            {isFormOpen ? 'Cancel' : <><Plus size={18} /> Submit New Report</>}
+          </button>
+        </div>
       </div>
 
-      {isSettingsOpen && !isAdmin && (
+      {isSettingsOpen && (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem', animation: 'var(--transition)' }}>
           <h2 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>Report Settings</h2>
           
@@ -201,7 +199,7 @@ const WeeklyReport = () => {
         </div>
       )}
 
-      {isFormOpen && !isAdmin && !isSettingsOpen && (
+      {isFormOpen && !isSettingsOpen && (
         <div className="card" style={{ marginBottom: '2rem', animation: 'var(--transition)' }}>
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
             <div style={{ flex: '1', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-color)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
@@ -269,11 +267,9 @@ const WeeklyReport = () => {
                   {expandedId === report.id ? <ChevronDown size={20} color="var(--primary)" /> : <ChevronRight size={20} color="var(--primary)" />}
                   <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{format(new Date(report.date), 'MMMM d, yyyy')} Meeting Report</h3>
                 </div>
-                {!isAdmin && (
-                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); setDate(report.date); setIsFormOpen(true); setIsSettingsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                    Edit
-                  </button>
-                )}
+                <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); setDate(report.date); setIsFormOpen(true); setIsSettingsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                  Edit
+                </button>
               </div>
               
               {expandedId === report.id && (

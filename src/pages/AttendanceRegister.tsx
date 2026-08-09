@@ -97,17 +97,16 @@ const AttendanceRegister = () => {
     <div className="attendance-view" style={{ maxWidth: '800px', margin: '0 auto', animation: 'var(--transition)' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
+        <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Attendance Register</h1>
           <p className="text-muted">Track attendance for {activeCell.name}</p>
         </div>
-        {!isAdmin && (
-          <button className="btn btn-primary" onClick={() => setIsFormOpen(!isFormOpen)}>
-            {isFormOpen ? 'Cancel' : <><Plus size={18} /> Take Attendance</>}
-          </button>
-        )}
+        <button className="btn btn-primary" onClick={() => setIsFormOpen(!isFormOpen)}>
+          {isFormOpen ? 'Cancel' : <><Plus size={18} /> Take Attendance</>}
+        </button>
       </div>
 
-      {isFormOpen && !isAdmin && (
+      {isFormOpen && (
         <div style={{ animation: 'var(--transition)', marginBottom: '3rem' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
             <input 
@@ -241,11 +240,9 @@ const AttendanceRegister = () => {
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                     <strong>{(meeting.attendees || []).length}</strong> Present
                   </span>
-                  {!isAdmin && (
-                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); handleEdit(meeting.date); }}>
-                      Edit
-                    </button>
-                  )}
+                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); handleEdit(meeting.date); }}>
+                    Edit
+                  </button>
                 </div>
               </div>
               
