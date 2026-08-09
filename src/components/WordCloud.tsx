@@ -39,8 +39,8 @@ const WordCloud: React.FC<WordCloudProps> = ({ texts, customStopWords = [] }) =>
     const maxCount = sortedWords[0][1];
     
     return sortedWords.map(([text, count]) => {
-      // Map max count to ~80px, others proportionally, min 15px
-      const sizeScale = Math.max(15, (count / maxCount) * 80);
+      // Map max count to ~50px to prevent overflow, others proportionally, min 12px
+      const sizeScale = Math.max(12, (count / maxCount) * 50);
       return {
         text,
         value: sizeScale
@@ -80,8 +80,10 @@ const WordCloud: React.FC<WordCloudProps> = ({ texts, customStopWords = [] }) =>
         font="Inter, sans-serif"
         fontSize={(word) => word.value}
         rotate={rotate}
-        padding={3}
+        padding={5}
         fill={(_: any, i: number) => fill(i.toString())}
+        width={800}
+        height={350}
       />
     </div>
   );
