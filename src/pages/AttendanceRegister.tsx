@@ -97,7 +97,6 @@ const AttendanceRegister = () => {
     <div className="attendance-view" style={{ maxWidth: '800px', margin: '0 auto', animation: 'var(--transition)' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
-        <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Attendance Register</h1>
           <p className="text-muted">Track attendance for {activeCell.name}</p>
         </div>
