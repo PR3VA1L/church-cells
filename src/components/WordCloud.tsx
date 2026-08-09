@@ -71,7 +71,8 @@ const WordCloud: React.FC<WordCloudProps> = ({ texts, customStopWords = [] }) =>
       borderRadius: 'var(--radius-md)',
       height: '400px', 
       width: '100%',
-      textAlign: 'center'
+      textAlign: 'center',
+      overflow: 'hidden'
     }}>
       <style>{`.wordcloud-wrapper svg { width: 100%; height: 100%; max-height: 100%; }`}</style>
       <WordCloudD3 
