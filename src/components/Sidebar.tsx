@@ -85,7 +85,7 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
         />
       </nav>
       
-      <div style={{ marginTop: 'auto', padding: '1.5rem 1rem' }}>
+      <div style={{ marginTop: 'auto', padding: '0.5rem 1rem' }}>
         <NavItem 
           icon={<LogOut size={20} />} 
           label="Logout" 

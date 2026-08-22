@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 
 const AdminPanel = () => {
-  const { data, createCell, updateCellPassword, addMember } = useData();
+  const { data, createCell, updateCellPassword, addMember, deleteCell } = useData();
   
   // State for new cell
   const [newCellName, setNewCellName] = useState('');
@@ -35,6 +35,12 @@ const AdminPanel = () => {
     const newPass = prompt('Enter new password for this cell:', currentPassword);
     if (newPass && newPass.trim() !== '') {
       updateCellPassword(cellId, newPass);
+    }
+  };
+
+  const handleDeleteCell = (cellId: string) => {
+    if (window.confirm("Are you sure you want to delete this cell? All associated data will be removed. This action cannot be undone.")) {
+      deleteCell(cellId);
     }
   };
 
@@ -111,10 +117,17 @@ const AdminPanel = () => {
                   <td>
                     <button 
                       className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', marginRight: '0.5rem' }}
                       onClick={() => handleChangePassword(cell.id, cell.password)}
                     >
                       Change Password
+                    </button>
+                    <button 
+                      className="btn btn-outline" 
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                      onClick={() => handleDeleteCell(cell.id)}
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>

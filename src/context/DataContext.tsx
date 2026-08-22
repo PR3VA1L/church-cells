@@ -66,6 +66,7 @@ interface DataContextType {
   saveMeeting: (meeting: Meeting) => Promise<void>;
   saveWeeklyReport: (report: WeeklyReportData) => Promise<void>;
   createCell: (name: string, leaderName: string, password?: string) => Promise<void>;
+  deleteCell: (cellId: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
   updateCellQuestions: (cellId: string, questions: string[]) => Promise<void>;
   updateCellStopWords: (cellId: string, words: string[]) => Promise<void>;
@@ -240,6 +241,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const deleteCell = async (cellId: string) => {
+    try {
+      await supabase.from('cells').delete().eq('id', cellId);
+    } catch (error: any) {
+      alert("Error deleting cell: " + error.message);
+    }
+  };
+
   const updateCellPassword = async (cellId: string, newPassword: string) => {
     try {
       await supabase.from('cells').update({ password: newPassword }).eq('id', cellId);
@@ -278,7 +287,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
       updateMemberStatus, addVisitor, addMember, saveMeeting, saveWeeklyReport,
-      createCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords,
+      createCell, deleteCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords,
       loading
     }}>
       {children}
