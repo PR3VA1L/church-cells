@@ -1,23 +1,15 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Users, Cross, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Filter } from 'lucide-react';
+import { Users, Cross, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { parseISO, startOfWeek, startOfMonth, startOfYear, isAfter, isBefore, endOfDay } from 'date-fns';
-import WordCloud from '../components/WordCloud';
-
-const defaultQuestions = [
-  "Number of members who maintained a consistent prayer routine during the week - prayed at least 5 days this week.",
-  "What prayer component or type did the cell practise and demonstrated growth in this week?",
-  "What common barriers in prayer are affecting the cell members.",
-  "Testimonies & Breakthroughs - themes"
-];
+import { parseISO, startOfWeek, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, format } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const { data, currentUser, activeCellId } = useData();
   const tableRef = useRef(null);
 
   const isAdmin = currentUser?.role === 'admin';
-  // Admin can select "All Cells" (activeCellId = "") or a specific cell. Leader is forced to activeCellId.
   const targetCellId = activeCellId || null;
   const targetCell = targetCellId ? data.cells.find(c => c.id === targetCellId) : null;
 
@@ -26,19 +18,16 @@ const Dashboard = () => {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
-  // Question Filter State (only for Cell Dashboard)
-  const [selectedQuestion, setSelectedQuestion] = useState('all');
-
   // Filter Data
-  const { filteredMeetings, filteredReports, filteredRoster } = useMemo(() => {
+  const { filteredMeetings, filteredAssessments, filteredRoster } = useMemo(() => {
     let meetings = data.meetings;
-    let reports = data.weeklyReports;
+    let assessments = data.assessments;
     let roster = data.roster;
 
     // Filter by Cell
     if (targetCellId) {
       meetings = meetings.filter(m => m.cellId === targetCellId);
-      reports = reports.filter(r => r.cellId === targetCellId);
+      assessments = assessments.filter(r => r.cellId === targetCellId);
       roster = roster.filter(r => r.cellId === targetCellId);
     }
 
@@ -61,13 +50,13 @@ const Dashboard = () => {
         return (isAfter(d, start) || d.getTime() === start.getTime()) && (timeFilter === 'custom' ? (isBefore(d, end) || d.getTime() === end.getTime()) : true);
       });
 
-      reports = reports.filter(r => {
-        const d = parseISO(r.date);
+      assessments = assessments.filter(a => {
+        const d = parseISO(a.date);
         return (isAfter(d, start) || d.getTime() === start.getTime()) && (timeFilter === 'custom' ? (isBefore(d, end) || d.getTime() === end.getTime()) : true);
       });
     }
 
-    return { filteredMeetings: meetings, filteredReports: reports, filteredRoster: roster };
+    return { filteredMeetings: meetings, filteredAssessments: assessments, filteredRoster: roster };
   }, [data, targetCellId, timeFilter, customStart, customEnd]);
 
   // Calculate KPIs
@@ -80,57 +69,75 @@ const Dashboard = () => {
   
   const totalSalvations = filteredMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
 
-  // Determine which questions to show in dropdown
-  const questionsList = useMemo(() => {
-    if (targetCellId && targetCell) {
-      return targetCell.custom_questions || defaultQuestions;
-    } else {
-      const allQs = new Set<string>();
-      defaultQuestions.forEach(q => allQs.add(q));
-      data.cells.forEach(c => {
-        if (c.custom_questions) {
-          c.custom_questions.forEach(q => allQs.add(q));
-        }
+  // Calculate Assessment Averages
+  const assessmentStats = useMemo(() => {
+    const stats: Record<number, Record<number, { sum: number, count: number }>> = {};
+    let totalSum = 0;
+    let totalCount = 0;
+    
+    data.pillarQuestions.forEach((pillar, pIdx) => {
+      stats[pIdx] = {};
+      pillar.questions.forEach((_, qIdx) => {
+        stats[pIdx][qIdx] = { sum: 0, count: 0 };
       });
-      return Array.from(allQs);
-    }
-  }, [targetCellId, targetCell, data.cells]);
-
-  // Extract Word Cloud Texts
-  const { wordCloudTexts, stopWords } = useMemo(() => {
-    let texts: string[] = [];
-    let customStops = new Set<string>();
-
-    filteredReports.forEach(report => {
-      // If a specific question is selected, only extract that answer
-      if (selectedQuestion !== 'all') {
-        if (report.custom_responses && report.custom_responses[selectedQuestion]) {
-          texts.push(report.custom_responses[selectedQuestion]);
-        } else {
-          // Fallback for legacy fields if they match standard questions
-          if (selectedQuestion === defaultQuestions[1] && report.q2) texts.push(report.q2);
-          if (selectedQuestion === defaultQuestions[2] && report.q3) texts.push(report.q3);
-          if (selectedQuestion === defaultQuestions[3] && report.q4) texts.push(report.q4);
-        }
-      } 
-      // Aggregate all responses
-      else {
-        if (report.custom_responses && Object.keys(report.custom_responses).length > 0) {
-          texts.push(...Object.values(report.custom_responses));
-        } else {
-          texts.push(report.q2 || '', report.q3 || '', report.q4 || '');
-        }
-      }
     });
 
-    if (targetCell) {
-      (targetCell.custom_stop_words || []).forEach(w => customStops.add(w));
-    } else if (isAdmin) {
-      data.cells.forEach(c => (c.custom_stop_words || []).forEach(w => customStops.add(w)));
-    }
+    filteredAssessments.forEach(assessment => {
+      Object.entries(assessment.scores).forEach(([pIdxStr, questions]) => {
+        const pIdx = parseInt(pIdxStr);
+        Object.entries(questions).forEach(([qIdxStr, score]) => {
+          const qIdx = parseInt(qIdxStr);
+          if (score > 0 && stats[pIdx] && stats[pIdx][qIdx]) {
+            stats[pIdx][qIdx].sum += score;
+            stats[pIdx][qIdx].count += 1;
+            totalSum += score;
+            totalCount += 1;
+          }
+        });
+      });
+    });
 
-    return { wordCloudTexts: texts, stopWords: Array.from(customStops) };
-  }, [filteredReports, targetCell, isAdmin, data.cells, targetCellId, selectedQuestion]);
+    const overallAvg = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '0.0';
+    return { stats, overallAvg };
+  }, [filteredAssessments, data.pillarQuestions]);
+
+  const trendData = useMemo(() => {
+    const byDate: Record<string, any> = {};
+    
+    filteredAssessments.forEach(a => {
+      if (!byDate[a.date]) {
+        byDate[a.date] = { date: a.date, sum: [0, 0, 0, 0], count: [0, 0, 0, 0] };
+      }
+      
+      data.pillarQuestions.forEach((pillar, pIdx) => {
+        let pSum = 0;
+        let pCount = 0;
+        Object.entries(a.scores[pIdx] || {}).forEach(([_, score]) => {
+          if (score > 0) {
+            pSum += score;
+            pCount++;
+          }
+        });
+        byDate[a.date].sum[pIdx] += pSum;
+        byDate[a.date].count[pIdx] += pCount;
+      });
+    });
+
+    const formatted = Object.values(byDate).map(d => {
+      const item: any = { name: format(parseISO(d.date), 'MMM dd') };
+      data.pillarQuestions.forEach((p, pIdx) => {
+        item[p.pillar] = d.count[pIdx] > 0 ? Number((d.sum[pIdx] / d.count[pIdx]).toFixed(1)) : null;
+      });
+      const totalSum = d.sum.reduce((a: number, b: number) => a + b, 0);
+      const totalCount = d.count.reduce((a: number, b: number) => a + b, 0);
+      item['Overall'] = totalCount > 0 ? Number((totalSum / totalCount).toFixed(1)) : null;
+      item._rawDate = d.date;
+      return item;
+    });
+
+    return formatted.sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());
+  }, [filteredAssessments, data.pillarQuestions]);
+
 
   const exportToPNG = async () => {
     if (tableRef.current) {
@@ -203,35 +210,104 @@ const Dashboard = () => {
         <StatCard icon={<Activity />} title="Avg Weekly Attendance" value={avgAttendance} color="var(--primary)" />
         <StatCard icon={<Users />} title={!targetCellId ? "Total Active Members" : "Active Members"} value={totalMembers} color="var(--secondary)" />
         <StatCard icon={<UserPlus />} title={!targetCellId ? "Total New Visitors" : "New Visitors"} value={totalVisitors} color="var(--warning)" />
-        <StatCard icon={<Cross />} title="Total Salvations" value={totalSalvations} color="var(--danger)" />
+        <StatCard icon={<Target />} title="Overall Growth Avg" value={`${assessmentStats.overallAvg} / 5`} color="#10b981" />
       </div>
+
+      {trendData.length > 0 && (
+        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--primary)' }}>Overall Growth Trend</h3>
+            <p className="text-muted" style={{ margin: 0, marginTop: '0.25rem', fontSize: '0.875rem' }}>
+              Spiritual growth across the 4 pillars over time.
+            </p>
+          </div>
+          <div style={{ height: '350px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                <YAxis domain={[0, 5]} stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-main)' }}
+                  itemStyle={{ color: 'var(--text-main)', fontWeight: 500 }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Line type="monotone" dataKey="Overall" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="PRAYER" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} opacity={0.6} />
+                <Line type="monotone" dataKey="THE WORD" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} opacity={0.6} />
+                <Line type="monotone" dataKey="EVANGELISM" stroke="#f59e0b" strokeWidth={2} dot={false} activeDot={{ r: 4 }} opacity={0.6} />
+                <Line type="monotone" dataKey="SERVICE" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 4 }} opacity={0.6} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginBottom: '2.5rem' }}>
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div>
-              <h3 style={{ margin: 0, color: 'var(--primary)' }}>Report Keyword Cloud</h3>
-              <p className="text-muted" style={{ margin: 0, marginTop: '0.25rem', fontSize: '0.875rem' }}>
-                Most frequently used words in the weekly reports for the selected time period.
-              </p>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-color)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-              <Filter size={16} color="var(--primary)" />
-              <select 
-                value={selectedQuestion} 
-                onChange={(e) => setSelectedQuestion(e.target.value)}
-                style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.875rem', color: 'var(--text-main)', cursor: 'pointer', maxWidth: '300px' }}
-              >
-                <option value="all">All Questions (Aggregated)</option>
-                {questionsList.map((q, idx) => (
-                  <option key={idx} value={q}>Question: {q.length > 50 ? q.substring(0, 50) + '...' : q}</option>
-                ))}
-              </select>
-            </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--primary)' }}>4-Pillars Growth Analysis</h3>
+            <p className="text-muted" style={{ margin: 0, marginTop: '0.25rem', fontSize: '0.875rem' }}>
+              Average ratings (1-5) for each pillar and question during the selected time period.
+            </p>
           </div>
           
-          <WordCloud texts={wordCloudTexts} customStopWords={stopWords} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+            {data.pillarQuestions.map((pillar, pIdx) => {
+              let pSum = 0;
+              let pCount = 0;
+              pillar.questions.forEach((_, qIdx) => {
+                pSum += assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
+                pCount += assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
+              });
+              const pAvgNum = pCount > 0 ? (pSum / pCount) : 0;
+              const pAvg = pAvgNum.toFixed(1);
+              
+              // Determine overall color for the pillar
+              const pillarColor = pAvgNum >= 4 ? 'var(--success)' : pAvgNum >= 2.5 ? 'var(--warning)' : 'var(--danger)';
+
+              return (
+                <div key={pIdx} style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid var(--bg-color)', paddingBottom: '0.75rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-main)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{pillar.pillar}</h4>
+                    <div style={{ fontWeight: '700', color: pillarColor, fontSize: '1.5rem', background: `${pillarColor}15`, padding: '0.25rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
+                      {pAvg} <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)' }}>/ 5</span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
+                    {pillar.questions.map((question, qIdx) => {
+                      const qSum = assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
+                      const qCount = assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
+                      const qAvg = qCount > 0 ? (qSum / qCount).toFixed(1) : '0.0';
+                      const qAvgNum = parseFloat(qAvg);
+                      const widthPct = (qAvgNum / 5) * 100;
+                      
+                      const barColor = qAvgNum >= 4 ? 'var(--success)' : qAvgNum >= 2.5 ? 'var(--warning)' : 'var(--danger)';
+
+                      return (
+                        <div key={qIdx} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem' }}>
+                            <span style={{ color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: '500', lineHeight: '1.4', flex: 1 }}>{question}</span>
+                            <span style={{ fontWeight: '700', color: barColor, fontSize: '1rem', whiteSpace: 'nowrap' }}>{qAvg}</span>
+                          </div>
+                          <div style={{ height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ 
+                              height: '100%', 
+                              width: `${widthPct}%`, 
+                              background: barColor, 
+                              borderRadius: '4px',
+                              transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

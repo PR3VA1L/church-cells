@@ -27,24 +27,66 @@ export interface Meeting {
   welfare?: number;
 }
 
-export interface WeeklyReportData {
+export interface PillarQuestion {
+  pillar: string;
+  questions: string[];
+}
+
+export const DEFAULT_PILLAR_QUESTIONS: PillarQuestion[] = [
+  {
+    pillar: "PRAYER",
+    questions: [
+      "I understand the importance of prayer as an essential part of my relationship and dependence on God.",
+      "I have a practical and consistent daily prayer routine.",
+      "I am growing in the depth, variety and effectiveness of my prayers, using biblical patterns of prayer.",
+      "I pray with increasing confidence, faith and persistence, including when I do not immediately see answers."
+    ]
+  },
+  {
+    pillar: "THE WORD",
+    questions: [
+      "I read or study the Bible regularly.",
+      "I meditate on God's Word and think about how it applies to my life.",
+      "I am growing in my knowledge and understanding of Scripture.",
+      "I apply the Word of God to my decisions, attitudes, relationships and daily life."
+    ]
+  },
+  {
+    pillar: "EVANGELISM",
+    questions: [
+      "I feel responsible to share my faith with people who do not know Jesus.",
+      "I look for opportunities to build relationships with people who do not know Jesus.",
+      "I am becoming more confident in sharing my testimony and the Gospel.",
+      "I regularly pray for people who do not know Christ."
+    ]
+  },
+  {
+    pillar: "SERVICE",
+    questions: [
+      "I build a regular rhythm of serving God and others.",
+      "I actively look for ways to help out in my community or cell.",
+      "I serve with a joyful and willing heart.",
+      "I encourage others to join in serving."
+    ]
+  }
+];
+
+export interface Assessment {
   id: string;
   cellId: string;
+  memberId: string;
   date: string;
-  q1: string;
-  q2: string;
-  q3: string;
-  q4: string;
-  custom_responses?: Record<string, string>;
+  scores: Record<string, Record<string, number>>; // { [pillarIndex]: { [questionIndex]: score } }
   timestamp: string;
 }
 
 export interface AppData {
   cells: Cell[];
   adminPassword?: string;
+  pillarQuestions: PillarQuestion[];
   roster: Member[];
   meetings: Meeting[];
-  weeklyReports: WeeklyReportData[];
+  assessments: Assessment[];
 }
 
 export interface CurrentUser {
@@ -64,13 +106,14 @@ interface DataContextType {
   addVisitor: (cellId: string, name: string, phone: string) => Promise<Member>;
   addMember: (cellId: string, name: string, phone: string) => Promise<Member>;
   saveMeeting: (meeting: Meeting) => Promise<void>;
-  saveWeeklyReport: (report: WeeklyReportData) => Promise<void>;
+  saveAssessment: (assessment: Assessment) => Promise<void>;
   createCell: (name: string, leaderName: string, password?: string) => Promise<void>;
   deleteCell: (cellId: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
   updateCellQuestions: (cellId: string, questions: string[]) => Promise<void>;
   updateCellStopWords: (cellId: string, words: string[]) => Promise<void>;
   updateAdminPassword: (newPassword: string) => Promise<void>;
+  updatePillarQuestions: (questions: PillarQuestion[]) => Promise<void>;
   loading: boolean;
 }
 
@@ -79,9 +122,10 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 const defaultData: AppData = {
   cells: [],
   adminPassword: '123',
+  pillarQuestions: DEFAULT_PILLAR_QUESTIONS,
   roster: [],
   meetings: [],
-  weeklyReports: []
+  assessments: []
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -115,20 +159,23 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Realtime Database Listeners
   useEffect(() => {
     const fetchData = async () => {
-      const [cellsRes, rosterRes, meetingsRes, reportsRes, settingsRes] = await Promise.all([
+      const [cellsRes, rosterRes, meetingsRes, assessmentsRes, settingsRes] = await Promise.all([
         supabase.from('cells').select('*'),
         supabase.from('roster').select('*'),
         supabase.from('meetings').select('*'),
-        supabase.from('weeklyreports').select('*'),
+        supabase.from('assessments').select('*'),
         supabase.from('settings').select('*')
       ]);
+
+      const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
 
       setData({
         cells: cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || [],
         roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
         meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
-        weeklyReports: reportsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, custom_responses: r.custom_responses })) || [],
-        adminPassword: settingsRes.data?.find((s: any) => s.id === 'admin')?.adminpassword || '123'
+        assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
+        pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS,
+        adminPassword: adminSettings?.adminpassword || '123'
       });
       setLoading(false);
     };
@@ -220,13 +267,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const saveWeeklyReport = async (report: WeeklyReportData) => {
+  const saveAssessment = async (assessment: Assessment) => {
     try {
-      const docId = `${report.cellId}_${report.date}`;
-      const { cellId, ...rest } = report;
-      await supabase.from('weeklyreports').upsert({ ...rest, id: docId, cellid: cellId });
+      // id is already memberId_date
+      const { cellId, memberId, ...rest } = assessment;
+      await supabase.from('assessments').upsert({ ...rest, cellid: cellId, memberid: memberId, id: assessment.id });
     } catch (error: any) {
-      alert("Error saving report: " + error.message);
+      alert("Error saving assessment: " + error.message);
     }
   };
 
@@ -281,13 +328,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updatePillarQuestions = async (questions: PillarQuestion[]) => {
+    try {
+      await supabase.from('settings').update({ pillar_questions: questions }).eq('id', 'admin');
+    } catch (error: any) {
+      alert("Error updating pillar questions: " + error.message);
+    }
+  };
+
   return (
     <DataContext.Provider value={{ 
       data, setData, 
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
-      updateMemberStatus, addVisitor, addMember, saveMeeting, saveWeeklyReport,
-      createCell, deleteCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords,
+      updateMemberStatus, addVisitor, addMember, saveMeeting, saveAssessment,
+      createCell, deleteCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading
     }}>
       {children}

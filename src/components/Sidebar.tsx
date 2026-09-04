@@ -79,9 +79,9 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
         />
         <NavItem 
           icon={<FileText size={20} />} 
-          label="Weekly Reports" 
-          active={activeTab === 'reports'} 
-          onClick={() => setActiveTab('reports')} 
+          label="Assessments" 
+          active={activeTab === 'assessments'} 
+          onClick={() => setActiveTab('assessments')} 
         />
       </nav>
       

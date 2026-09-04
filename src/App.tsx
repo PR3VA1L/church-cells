@@ -6,7 +6,7 @@ import CellRoster from './pages/CellRoster';
 import AttendanceRegister from './pages/AttendanceRegister';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
-import WeeklyReport from './pages/WeeklyReport';
+import Assessments from './pages/Assessments';
 import { Menu } from 'lucide-react';
 import './index.css';
 
@@ -55,7 +55,7 @@ function AppContent() {
         {activeTab === 'admin' && currentUser.role === 'admin' && <AdminPanel />}
         {activeTab === 'roster' && <CellRoster />}
         {activeTab === 'attendance' && <AttendanceRegister />}
-        {activeTab === 'reports' && <WeeklyReport />}
+        {activeTab === 'assessments' && <Assessments />}
       </main>
     </div>
   );

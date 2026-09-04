@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
+import { Save, Plus, Trash2 } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { data, createCell, updateCellPassword, addMember, deleteCell } = useData();
+  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions } = useData();
   
   // State for new cell
   const [newCellName, setNewCellName] = useState('');
@@ -13,6 +14,10 @@ const AdminPanel = () => {
   const [memberCellId, setMemberCellId] = useState(data.cells[0]?.id || '');
   const [memberName, setMemberName] = useState('');
   const [memberPhone, setMemberPhone] = useState('');
+
+  // State for Pillar Questions
+  const [pillars, setPillars] = useState(data.pillarQuestions);
+  const [isSavingPillars, setIsSavingPillars] = useState(false);
 
   const handleCreateCell = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +47,37 @@ const AdminPanel = () => {
     if (window.confirm("Are you sure you want to delete this cell? All associated data will be removed. This action cannot be undone.")) {
       deleteCell(cellId);
     }
+  };
+
+  const handlePillarChange = (pIdx: number, newPillarName: string) => {
+    const newPillars = [...pillars];
+    newPillars[pIdx].pillar = newPillarName;
+    setPillars(newPillars);
+  };
+
+  const handleQuestionChange = (pIdx: number, qIdx: number, newQuestion: string) => {
+    const newPillars = [...pillars];
+    newPillars[pIdx].questions[qIdx] = newQuestion;
+    setPillars(newPillars);
+  };
+
+  const addQuestion = (pIdx: number) => {
+    const newPillars = [...pillars];
+    newPillars[pIdx].questions.push("New Question");
+    setPillars(newPillars);
+  };
+
+  const removeQuestion = (pIdx: number, qIdx: number) => {
+    const newPillars = [...pillars];
+    newPillars[pIdx].questions.splice(qIdx, 1);
+    setPillars(newPillars);
+  };
+
+  const savePillars = async () => {
+    setIsSavingPillars(true);
+    await updatePillarQuestions(pillars);
+    alert('Global Pillar Questions saved successfully!');
+    setIsSavingPillars(false);
   };
 
   return (
@@ -134,6 +170,57 @@ const AdminPanel = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Manage Global Pillar Questions */}
+        <div className="glass-panel" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--primary)' }}>Global 4-Pillars Assessment Questions</h3>
+            <button 
+              className="btn btn-primary" 
+              onClick={savePillars}
+              disabled={isSavingPillars}
+            >
+              {isSavingPillars ? 'Saving...' : <><Save size={16} /> Save Questions</>}
+            </button>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+            {pillars.map((pillar, pIdx) => (
+              <div key={pIdx} style={{ background: 'var(--surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                <input 
+                  value={pillar.pillar}
+                  onChange={(e) => handlePillarChange(pIdx, e.target.value)}
+                  style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', paddingBottom: '0.25rem', outline: 'none' }}
+                />
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {pillar.questions.map((q, qIdx) => (
+                    <div key={qIdx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                      <textarea
+                        value={q}
+                        onChange={(e) => handleQuestionChange(pIdx, qIdx, e.target.value)}
+                        style={{ flex: 1, minHeight: '60px', padding: '0.5rem', fontSize: '0.875rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', resize: 'vertical' }}
+                      />
+                      <button 
+                        onClick={() => removeQuestion(pIdx, qIdx)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.25rem' }}
+                        title="Remove Question"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <button 
+                    onClick={() => addQuestion(pIdx)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: '1px dashed var(--primary)', color: 'var(--primary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', justifyContent: 'center', marginTop: '0.5rem' }}
+                  >
+                    <Plus size={16} /> Add Question
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
