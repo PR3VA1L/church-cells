@@ -122,10 +122,17 @@ async function seed() {
           // random scores 
           // pillarIndex: 0-3, questionIndex: 0-3
           const scores = {};
+          // Pick a random tendency for this member (high, medium, low) to prevent all averages hitting 3.0
+          const memberTendency = [2, 3, 5][Math.floor(Math.random() * 3)];
+          
           for (let p=0; p<4; p++) {
             scores[p] = {};
             for (let q=0; q<4; q++) {
-              scores[p][q] = Math.floor(Math.random() * 5) + 1; // 1 to 5
+              // vary by -1, 0, or +1 from their tendency, bounded 1 to 5
+              let s = memberTendency + Math.floor(Math.random() * 3) - 1;
+              if (s < 1) s = 1;
+              if (s > 5) s = 5;
+              scores[p][q] = s;
             }
           }
           await supabase.from('assessments').insert({

@@ -19,10 +19,18 @@ export default function Assessments() {
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Local state to hold the form data before saving
   // Structure: { [memberId]: { [pillarIndex]: { [questionIndex]: score } } }
   const [scores, setScores] = useState<Record<string, Record<string, Record<string, number>>>>({});
+  
+  const scoresRef = React.useRef(scores);
+  const dateRef = React.useRef(date);
+  React.useEffect(() => {
+    scoresRef.current = scores;
+    dateRef.current = date;
+  }, [scores, date]);
 
   if (!activeCellId) return <div>Please select a cell first.</div>;
 
@@ -44,6 +52,7 @@ export default function Assessments() {
       }
     });
     setScores(existingScores);
+    setHasUnsavedChanges(false);
   }, [activeCellId, date, data.assessments, data.roster]); // Re-run when date changes
 
   const handleScoreChange = (memberId: string, pillarIndex: number, questionIndex: number, val: number) => {
@@ -55,24 +64,28 @@ export default function Assessments() {
       newScores[memberId][pillarIndex][questionIndex] = val;
       return newScores;
     });
+    setHasUnsavedChanges(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (autoSaveScores?: any, autoSaveDate?: string) => {
+    const currentScores = autoSaveScores || scores;
+    const currentDate = autoSaveDate || date;
     setIsSaving(true);
     setSuccessMsg('');
     try {
       const promises = members.map(m => {
-        const memberScores = scores[m.id] || {};
+        const memberScores = currentScores[m.id] || {};
         return saveAssessment({
-          id: `${activeCellId}_${m.id}_${date}`,
+          id: `${activeCellId}_${m.id}_${currentDate}`,
           cellId: activeCellId,
           memberId: m.id,
-          date,
+          date: currentDate,
           scores: memberScores,
           timestamp: new Date().toISOString()
         });
       });
       await Promise.all(promises);
+      setHasUnsavedChanges(false);
       setSuccessMsg('Assessments saved successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
@@ -81,6 +94,15 @@ export default function Assessments() {
     }
     setIsSaving(false);
   };
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (hasUnsavedChanges) {
+        handleSave(scoresRef.current, dateRef.current);
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [hasUnsavedChanges, members, activeCellId]);
 
   const toggleMember = (memberId: string) => {
     setExpandedMember(prev => prev === memberId ? null : memberId);
@@ -102,6 +124,8 @@ export default function Assessments() {
     
     return { answered: answeredQuestions, total: totalQuestions };
   };
+
+  const pastDates = Array.from(new Set(data.assessments.filter(a => a.cellId === activeCellId).map(a => a.date))).sort().reverse();
 
   return (
     <div className="assessments-view" style={{ maxWidth: '900px', margin: '0 auto', animation: 'var(--transition)' }}>
@@ -133,6 +157,31 @@ export default function Assessments() {
         {successMsg && (
           <div style={{ marginTop: '1rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CheckCircle2 size={18} /> {successMsg}
+          </div>
+        )}
+        
+        {pastDates.length > 0 && (
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+            <span className="text-muted" style={{ fontSize: '0.875rem', fontWeight: '500' }}>Recent Assessments: </span>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+              {pastDates.slice(0, 8).map(d => (
+                <button 
+                  key={d} 
+                  className="btn btn-outline" 
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.8rem', 
+                    borderColor: d === date ? 'var(--primary)' : 'var(--border)', 
+                    color: d === date ? 'white' : 'var(--text-main)',
+                    backgroundColor: d === date ? 'var(--primary)' : 'transparent',
+                    borderRadius: 'var(--radius-full)'
+                  }}
+                  onClick={() => setDate(d)}
+                >
+                  {format(parseISO(d), 'MMM dd, yyyy')}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

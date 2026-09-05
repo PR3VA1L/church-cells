@@ -1,10 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Mail, Phone, Download, Image as ImageIcon } from 'lucide-react';
+import { Mail, Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {
-  const { data, activeCellId, updateMemberStatus } = useData();
+  const { data, activeCellId, updateMember, removeMember } = useData();
+  const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
+  const [editPhoneValue, setEditPhoneValue] = useState('');
   const tableRef = useRef(null);
   
   const activeCell = data.cells.find(c => c.id === activeCellId);
@@ -76,26 +78,52 @@ const CellRoster = () => {
                 <tr key={person.id}>
                   <td style={{ fontWeight: '500' }}>{person.name}</td>
                   <td>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Phone size={14} className="text-muted" />
-                      {person.phone || 'N/A'}
-                    </span>
+                    {editingPhoneId === person.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          style={{ padding: '0.25rem', width: '120px' }} 
+                          value={editPhoneValue}
+                          onChange={(e) => setEditPhoneValue(e.target.value)}
+                        />
+                        <button className="btn" style={{ padding: '0.25rem', background: 'var(--success)', color: 'white' }} onClick={() => { updateMember(person.id, editPhoneValue, person.type); setEditingPhoneId(null); }}>
+                          <Check size={14} />
+                        </button>
+                        <button className="btn btn-outline" style={{ padding: '0.25rem' }} onClick={() => setEditingPhoneId(null)}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Phone size={14} className="text-muted" />
+                        {person.phone || 'N/A'}
+                        <button className="btn-icon" onClick={() => { setEditingPhoneId(person.id); setEditPhoneValue(person.phone || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                          <Edit2 size={12} className="text-muted" />
+                        </button>
+                      </span>
+                    )}
                   </td>
                   <td>
-                    <span className={`badge ${person.type === 'M' ? 'badge-member' : 'badge-visitor'}`}>
+                    <button 
+                      className={`badge ${person.type === 'M' ? 'badge-member' : 'badge-visitor'}`}
+                      style={{ border: 'none', cursor: 'pointer' }}
+                      onClick={() => updateMember(person.id, person.phone, person.type === 'M' ? 'V' : 'M')}
+                      title="Click to toggle role"
+                    >
                       {person.type === 'M' ? 'Member' : 'Visitor'}
-                    </span>
+                    </button>
                   </td>
                   <td data-html2canvas-ignore>
-                    {person.type === 'V' && (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button 
                         className="btn btn-outline" 
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                        onClick={() => updateMemberStatus(person.id, 'M')}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                        onClick={() => { if(window.confirm('Are you sure you want to remove this person?')) removeMember(person.id); }}
                       >
-                        Upgrade to Member
+                        <Trash2 size={14} /> Remove
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}

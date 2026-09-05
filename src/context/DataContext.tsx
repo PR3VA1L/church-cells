@@ -39,7 +39,8 @@ export const DEFAULT_PILLAR_QUESTIONS: PillarQuestion[] = [
       "I understand the importance of prayer as an essential part of my relationship and dependence on God.",
       "I have a practical and consistent daily prayer routine.",
       "I am growing in the depth, variety and effectiveness of my prayers, using biblical patterns of prayer.",
-      "I pray with increasing confidence, faith and persistence, including when I do not immediately see answers."
+      "I pray with increasing confidence, faith and persistence, including when I do not immediately see answers.",
+      "My prayer life is producing visible growth in my relationship with God and equipping me to pray with and encourage others."
     ]
   },
   {
@@ -47,8 +48,8 @@ export const DEFAULT_PILLAR_QUESTIONS: PillarQuestion[] = [
     questions: [
       "I read or study the Bible regularly.",
       "I meditate on God's Word and think about how it applies to my life.",
-      "I am growing in my knowledge and understanding of Scripture.",
-      "I apply the Word of God to my decisions, attitudes, relationships and daily life."
+      "I apply the Word of God to my decisions, attitudes, relationships and daily life.",
+      "I am growing in my knowledge and understanding of Scripture."
     ]
   },
   {
@@ -63,10 +64,10 @@ export const DEFAULT_PILLAR_QUESTIONS: PillarQuestion[] = [
   {
     pillar: "SERVICE",
     questions: [
-      "I build a regular rhythm of serving God and others.",
-      "I actively look for ways to help out in my community or cell.",
-      "I serve with a joyful and willing heart.",
-      "I encourage others to join in serving."
+      "I use my time and resources to care for the needs of others in my church and my local community.",
+      "I regularly use my time, gifts and passion to serve God in my local Assembly",
+      "I am actively involved in a service unit or department",
+      "I look for ways my life can have an impact for God's Kingdom in my community/market place"
     ]
   }
 ];
@@ -103,6 +104,8 @@ interface DataContextType {
   activeCellId: string | null;
   setActiveCellId: React.Dispatch<React.SetStateAction<string | null>>;
   updateMemberStatus: (memberId: string, newType: 'M' | 'V') => Promise<void>;
+  updateMember: (memberId: string, phone: string, type: 'M' | 'V') => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
   addVisitor: (cellId: string, name: string, phone: string) => Promise<Member>;
   addMember: (cellId: string, name: string, phone: string) => Promise<Member>;
   saveMeeting: (meeting: Meeting) => Promise<void>;
@@ -182,6 +185,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
     fetchData();
 
+    // 60-second polling fallback
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 60000);
+
     const channel = supabase.channel('schema-db-changes')
       .on(
         'postgres_changes',
@@ -193,6 +201,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       .subscribe();
 
     return () => {
+      clearInterval(intervalId);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -229,7 +238,23 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       await supabase.from('roster').update({ type: newType }).eq('id', memberId);
     } catch (error: any) {
+      alert("Error updating member status: " + error.message);
+    }
+  };
+
+  const updateMember = async (memberId: string, phone: string, type: 'M' | 'V') => {
+    try {
+      await supabase.from('roster').update({ phone, type }).eq('id', memberId);
+    } catch (error: any) {
       alert("Error updating member: " + error.message);
+    }
+  };
+
+  const removeMember = async (memberId: string) => {
+    try {
+      await supabase.from('roster').delete().eq('id', memberId);
+    } catch (error: any) {
+      alert("Error removing member: " + error.message);
     }
   };
 
@@ -341,7 +366,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       data, setData, 
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
-      updateMemberStatus, addVisitor, addMember, saveMeeting, saveAssessment,
+      updateMemberStatus, updateMember, removeMember, addVisitor, addMember, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading
     }}>

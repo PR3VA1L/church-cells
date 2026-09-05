@@ -151,13 +151,14 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
-    let csvContent = "Cell Name,Cell Leader,Meetings Held,Avg Attendance,Total Salvations\n";
+    let csvContent = "Cell Name,Cell Leader,Meetings Held,Avg Attendance,Total Salvations,New Visitors\n";
     data.cells.forEach(cell => {
       const cellMeetings = filteredMeetings.filter(m => m.cellId === cell.id);
       const cellAttendances = cellMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
       const cellAvg = cellMeetings.length > 0 ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
       const cellSalvations = cellMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
-      csvContent += `${cell.name},${cell.leaderName},${cellMeetings.length},${cellAvg},${cellSalvations}\n`;
+      const cellVisitors = filteredRoster.filter(m => m.cellId === cell.id && m.type === 'V').length;
+      csvContent += `${cell.name},${cell.leaderName},${cellMeetings.length},${cellAvg},${cellSalvations},${cellVisitors}\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -210,13 +211,14 @@ const Dashboard = () => {
         <StatCard icon={<Activity />} title="Avg Weekly Attendance" value={avgAttendance} color="var(--primary)" />
         <StatCard icon={<Users />} title={!targetCellId ? "Total Active Members" : "Active Members"} value={totalMembers} color="var(--secondary)" />
         <StatCard icon={<UserPlus />} title={!targetCellId ? "Total New Visitors" : "New Visitors"} value={totalVisitors} color="var(--warning)" />
-        <StatCard icon={<Target />} title="Overall Growth Avg" value={`${assessmentStats.overallAvg} / 5`} color="#10b981" />
+        <StatCard icon={<Cross />} title={!targetCellId ? "Total Salvations" : "Salvations"} value={totalSalvations} color="#3b82f6" />
+        <StatCard icon={<Target />} title="Overall Pillar Average" value={`${assessmentStats.overallAvg} / 5`} color="#10b981" />
       </div>
 
       {trendData.length > 0 && (
         <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
           <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ margin: 0, color: 'var(--primary)' }}>Overall Growth Trend</h3>
+            <h3 style={{ margin: 0, color: 'var(--primary)' }}>Overall Pillar Trend</h3>
             <p className="text-muted" style={{ margin: 0, marginTop: '0.25rem', fontSize: '0.875rem' }}>
               Spiritual growth across the 4 pillars over time.
             </p>
@@ -334,6 +336,7 @@ const Dashboard = () => {
                   <th>Meetings Held</th>
                   <th>Avg Attendance</th>
                   <th>Total Salvations</th>
+                  <th>New Visitors</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,6 +345,7 @@ const Dashboard = () => {
                   const cellAttendances = cellMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
                   const cellAvg = cellMeetings.length > 0 ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
                   const cellSalvations = cellMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
+                  const cellVisitors = filteredRoster.filter(m => m.cellId === cell.id && m.type === 'V').length;
                   
                   return (
                     <tr key={cell.id}>
@@ -350,6 +354,7 @@ const Dashboard = () => {
                       <td>{cellMeetings.length}</td>
                       <td>{cellAvg}</td>
                       <td>{cellSalvations}</td>
+                      <td>{cellVisitors}</td>
                     </tr>
                   );
                 })}
