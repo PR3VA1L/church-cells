@@ -173,7 +173,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
 
       setData({
-        cells: cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || [],
+        cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
         roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
         meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
         assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
