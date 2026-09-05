@@ -122,16 +122,24 @@ async function seed() {
           // random scores 
           // pillarIndex: 0-3, questionIndex: 0-3
           const scores = {};
-          // Pick a random tendency for this member (high, medium, low) to prevent all averages hitting 3.0
-          const memberTendency = [2, 3, 5][Math.floor(Math.random() * 3)];
           
           for (let p=0; p<4; p++) {
             scores[p] = {};
             for (let q=0; q<4; q++) {
-              // vary by -1, 0, or +1 from their tendency, bounded 1 to 5
-              let s = memberTendency + Math.floor(Math.random() * 3) - 1;
-              if (s < 1) s = 1;
-              if (s > 5) s = 5;
+              let s = 3;
+              if (p === 0) {
+                // Pillar 0: Prayer -> Green (Mostly 4s and 5s)
+                s = Math.floor(Math.random() * 2) + 4; 
+              } else if (p === 1) {
+                // Pillar 1: The Word -> Red (Mostly 1s and 2s)
+                s = Math.floor(Math.random() * 2) + 1;
+              } else if (p === 2) {
+                // Pillar 2: Evangelism -> Orange (Mostly 3s)
+                s = 3;
+              } else {
+                // Pillar 3: Service -> Random 1 to 5
+                s = Math.floor(Math.random() * 5) + 1;
+              }
               scores[p][q] = s;
             }
           }
