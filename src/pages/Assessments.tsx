@@ -201,7 +201,10 @@ export default function Assessments() {
               const item: any = { name: format(parseISO(a.date), 'MMM dd') };
               let sum = 0;
               let count = 0;
+              let totalPossible = 0;
+              
               pillars.forEach((p, pIdx) => {
+                totalPossible += p.questions.length;
                 Object.values(a.scores[pIdx] || {}).forEach(score => {
                   if (score > 0) {
                     sum += score;
@@ -209,7 +212,9 @@ export default function Assessments() {
                   }
                 });
               });
-              item.Score = count > 0 ? Number((sum / count).toFixed(1)) : null;
+              
+              // Only add to averages if ALL questions were answered
+              item.Score = (count === totalPossible && count > 0) ? Number((sum / count).toFixed(1)) : null;
               item._rawDate = a.date;
               return item;
             }).filter(i => i.Score !== null).sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());
