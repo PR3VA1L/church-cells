@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword } = useData();
+  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword, clearAdminResetNotification } = useData();
   
   // State for new cell
   const [newCellName, setNewCellName] = useState('');
@@ -204,8 +204,15 @@ const AdminPanel = () => {
             </thead>
             <tbody>
               {data.cells.map(cell => (
-                <tr key={cell.id}>
-                  <td style={{ fontWeight: '500' }}>{cell.name}</td>
+                <tr key={cell.id} style={{ backgroundColor: cell.reset_requested ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
+                  <td style={{ fontWeight: '500' }}>
+                    {cell.name}
+                    {cell.reset_requested && (
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', padding: '0.125rem 0.375rem', backgroundColor: 'var(--danger)', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>
+                        Reset Requested
+                      </span>
+                    )}
+                  </td>
                   <td>{cell.leaderName}</td>
                   <td style={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {visiblePasswords[cell.id] ? (cell.password || '(No Password)') : '••••••••'}
@@ -231,6 +238,15 @@ const AdminPanel = () => {
                     >
                       Delete
                     </button>
+                    {cell.reset_requested && (
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', marginLeft: '0.5rem' }}
+                        onClick={() => clearAdminResetNotification(cell.id)}
+                      >
+                        Clear Alert
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

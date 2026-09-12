@@ -7,6 +7,7 @@ export interface Cell {
   leaderName: string;
   password?: string;
   email?: string;
+  reset_requested?: boolean;
   custom_questions?: string[];
   custom_stop_words?: string[];
 }
@@ -115,6 +116,8 @@ interface DataContextType {
   deleteCell: (cellId: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
   updateCellEmail: (cellId: string, newEmail: string) => Promise<void>;
+  notifyAdminForReset: (cellId: string) => Promise<void>;
+  clearAdminResetNotification: (cellId: string) => Promise<void>;
   updateCellQuestions: (cellId: string, questions: string[]) => Promise<void>;
   updateCellStopWords: (cellId: string, words: string[]) => Promise<void>;
   updateAdminPassword: (newPassword: string) => Promise<void>;
@@ -359,6 +362,26 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const notifyAdminForReset = async (cellId: string) => {
+    try {
+      const { error } = await supabase.from('cells').update({ reset_requested: true }).eq('id', cellId);
+      if (error) throw error;
+    } catch (error: any) {
+      alert("Error notifying admin: " + error.message);
+      throw error;
+    }
+  };
+
+  const clearAdminResetNotification = async (cellId: string) => {
+    try {
+      const { error } = await supabase.from('cells').update({ reset_requested: false }).eq('id', cellId);
+      if (error) throw error;
+    } catch (error: any) {
+      alert("Error clearing notification: " + error.message);
+      throw error;
+    }
+  };
+
   const updateCellQuestions = async (cellId: string, questions: string[]) => {
     try {
       const { error } = await supabase.from('cells').update({ custom_questions: questions }).eq('id', cellId);
@@ -405,7 +428,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMember, removeMember, addVisitor, addMember, saveMeeting, saveAssessment,
-      createCell, deleteCell, updateCellPassword, updateCellEmail, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
+      createCell, deleteCell, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading
     }}>
       {children}
