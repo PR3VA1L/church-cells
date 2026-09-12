@@ -111,7 +111,7 @@ interface DataContextType {
   addMember: (cellId: string, name: string, phone: string) => Promise<Member>;
   saveMeeting: (meeting: Meeting) => Promise<void>;
   saveAssessment: (assessment: Assessment) => Promise<void>;
-  createCell: (name: string, leaderName: string, password?: string) => Promise<void>;
+  createCell: (name: string, leaderName: string, password?: string, email?: string) => Promise<void>;
   deleteCell: (cellId: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
   updateCellEmail: (cellId: string, newEmail: string) => Promise<void>;

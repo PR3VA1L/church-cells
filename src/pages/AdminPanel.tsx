@@ -16,7 +16,7 @@ const AdminPanel = () => {
 
   // Passwords Visibility state
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
-  const timeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
+  const timeoutRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // State for adding member
   const [memberCellId, setMemberCellId] = useState(data.cells[0]?.id || '');
