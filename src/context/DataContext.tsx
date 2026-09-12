@@ -6,6 +6,7 @@ export interface Cell {
   name: string;
   leaderName: string;
   password?: string;
+  email?: string;
   custom_questions?: string[];
   custom_stop_words?: string[];
 }
@@ -113,6 +114,7 @@ interface DataContextType {
   createCell: (name: string, leaderName: string, password?: string) => Promise<void>;
   deleteCell: (cellId: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
+  updateCellEmail: (cellId: string, newEmail: string) => Promise<void>;
   updateCellQuestions: (cellId: string, questions: string[]) => Promise<void>;
   updateCellStopWords: (cellId: string, words: string[]) => Promise<void>;
   updateAdminPassword: (newPassword: string) => Promise<void>;
@@ -173,7 +175,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
 
       setData({
-        cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
+        cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, email: c.email, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
         roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
         meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
         assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
@@ -236,25 +238,31 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Roster Management
   const updateMemberStatus = async (memberId: string, newType: 'M' | 'V') => {
     try {
-      await supabase.from('roster').update({ type: newType }).eq('id', memberId);
+      const { error } = await supabase.from('roster').update({ type: newType }).eq('id', memberId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating member status: " + error.message);
+      throw error;
     }
   };
 
   const updateMember = async (memberId: string, phone: string, type: 'M' | 'V') => {
     try {
-      await supabase.from('roster').update({ phone, type }).eq('id', memberId);
+      const { error } = await supabase.from('roster').update({ phone, type }).eq('id', memberId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating member: " + error.message);
+      throw error;
     }
   };
 
   const removeMember = async (memberId: string) => {
     try {
-      await supabase.from('roster').delete().eq('id', memberId);
+      const { error } = await supabase.from('roster').delete().eq('id', memberId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error removing member: " + error.message);
+      throw error;
     }
   };
 
@@ -262,7 +270,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const id = Date.now().toString();
       const newVisitor: Member = { id, cellId, name, phone, type: 'V' };
-      await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'V' });
+      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'V' });
+      if (error) throw error;
       return newVisitor;
     } catch (error: any) {
       alert("Error adding visitor: " + error.message);
@@ -274,7 +283,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const id = Date.now().toString();
       const newMember: Member = { id, cellId, name, phone, type: 'M' };
-      await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'M' });
+      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'M' });
+      if (error) throw error;
       return newMember;
     } catch (error: any) {
       alert("Error adding member: " + error.message);
@@ -286,9 +296,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const docId = `${meeting.cellId}_${meeting.date}`;
       const { cellId, ...rest } = meeting;
-      await supabase.from('meetings').upsert({ ...rest, id: docId, cellid: cellId });
+      const { error } = await supabase.from('meetings').upsert({ ...rest, id: docId, cellid: cellId });
+      if (error) throw error;
     } catch (error: any) {
       alert("Error saving meeting: " + error.message);
+      throw error;
     }
   };
 
@@ -296,68 +308,94 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       // id is already memberId_date
       const { cellId, memberId, ...rest } = assessment;
-      await supabase.from('assessments').upsert({ ...rest, cellid: cellId, memberid: memberId, id: assessment.id });
+      const { error } = await supabase.from('assessments').upsert({ ...rest, cellid: cellId, memberid: memberId, id: assessment.id });
+      if (error) throw error;
     } catch (error: any) {
       alert("Error saving assessment: " + error.message);
+      throw error;
     }
   };
 
   // Admin Features
-  const createCell = async (name: string, leaderName: string, password?: string) => {
+  const createCell = async (name: string, leaderName: string, password?: string, email?: string) => {
     try {
       const id = Date.now().toString();
-      const newCell: Cell = { id, name, leaderName, password };
-      await supabase.from('cells').insert({ id, name, leadername: leaderName, password });
+      const newCell: Cell = { id, name, leaderName, password, email };
+      const { error } = await supabase.from('cells').insert({ id, name, leadername: leaderName, password, email });
+      if (error) throw error;
     } catch (error: any) {
       alert("Error creating cell: " + error.message);
+      throw error;
     }
   };
 
   const deleteCell = async (cellId: string) => {
     try {
-      await supabase.from('cells').delete().eq('id', cellId);
+      const { error } = await supabase.from('cells').delete().eq('id', cellId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error deleting cell: " + error.message);
+      throw error;
     }
   };
 
   const updateCellPassword = async (cellId: string, newPassword: string) => {
     try {
-      await supabase.from('cells').update({ password: newPassword }).eq('id', cellId);
+      const { error } = await supabase.from('cells').update({ password: newPassword }).eq('id', cellId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating password: " + error.message);
+      throw error;
+    }
+  };
+
+  const updateCellEmail = async (cellId: string, newEmail: string) => {
+    try {
+      const { error } = await supabase.from('cells').update({ email: newEmail }).eq('id', cellId);
+      if (error) throw error;
+    } catch (error: any) {
+      alert("Error updating email: " + error.message);
+      throw error;
     }
   };
 
   const updateCellQuestions = async (cellId: string, questions: string[]) => {
     try {
-      await supabase.from('cells').update({ custom_questions: questions }).eq('id', cellId);
+      const { error } = await supabase.from('cells').update({ custom_questions: questions }).eq('id', cellId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating questions: " + error.message);
+      throw error;
     }
   };
 
   const updateCellStopWords = async (cellId: string, words: string[]) => {
     try {
-      await supabase.from('cells').update({ custom_stop_words: words }).eq('id', cellId);
+      const { error } = await supabase.from('cells').update({ custom_stop_words: words }).eq('id', cellId);
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating stop words: " + error.message);
+      throw error;
     }
   };
   
   const updateAdminPassword = async (newPassword: string) => {
     try {
-      await supabase.from('settings').update({ adminpassword: newPassword }).eq('id', 'admin');
+      const { error } = await supabase.from('settings').update({ adminpassword: newPassword }).eq('id', 'admin');
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating admin password: " + error.message);
+      throw error;
     }
   };
 
   const updatePillarQuestions = async (questions: PillarQuestion[]) => {
     try {
-      await supabase.from('settings').update({ pillar_questions: questions }).eq('id', 'admin');
+      const { error } = await supabase.from('settings').update({ pillar_questions: questions }).eq('id', 'admin');
+      if (error) throw error;
     } catch (error: any) {
       alert("Error updating pillar questions: " + error.message);
+      throw error;
     }
   };
 
@@ -367,7 +405,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMember, removeMember, addVisitor, addMember, saveMeeting, saveAssessment,
-      createCell, deleteCell, updateCellPassword, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
+      createCell, deleteCell, updateCellPassword, updateCellEmail, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading
     }}>
       {children}

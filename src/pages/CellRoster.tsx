@@ -1,17 +1,42 @@
 import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Mail, Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Mail, Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {
-  const { data, activeCellId, updateMember, removeMember } = useData();
+  const { data, activeCellId, updateMember, removeMember, addMember, addVisitor } = useData();
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
   const [editPhoneValue, setEditPhoneValue] = useState('');
+  
+  // State for adding new person
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newType, setNewType] = useState<'M' | 'V'>('M');
+  const [isAdding, setIsAdding] = useState(false);
+
   const tableRef = useRef(null);
   
   const activeCell = data.cells.find(c => c.id === activeCellId);
   const roster = data.roster.filter(r => r.cellId === activeCellId);
   
+  const handleAddPerson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeCellId) return;
+    try {
+      if (newType === 'M') {
+        await addMember(activeCellId, newName, newPhone);
+      } else {
+        await addVisitor(activeCellId, newName, newPhone);
+      }
+      setNewName('');
+      setNewPhone('');
+      setNewType('M');
+      setIsAdding(false);
+    } catch (err: any) {
+      alert('Failed to add person: ' + err.message);
+    }
+  };
+
   const exportToPNG = async () => {
     if (!activeCell) return;
     if (tableRef.current) {
@@ -59,6 +84,41 @@ const CellRoster = () => {
             <ImageIcon size={16} /> Export PNG
           </button>
         </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isAdding ? '1.5rem' : '0' }}>
+          <h3 style={{ margin: 0, color: 'var(--primary)' }}>Add New Person</h3>
+          {!isAdding && (
+            <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
+              <Plus size={16} /> Add Member / Visitor
+            </button>
+          )}
+        </div>
+        
+        {isAdding && (
+          <form onSubmit={handleAddPerson} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Full Name</label>
+              <input value={newName} onChange={e => setNewName(e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Phone Number</label>
+              <input value={newPhone} onChange={e => setNewPhone(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+            </div>
+            <div style={{ width: '120px' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Type</label>
+              <select value={newType} onChange={e => setNewType(e.target.value as 'M'|'V')} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                <option value="M">Member</option>
+                <option value="V">Visitor</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>Save</button>
+              <button type="button" className="btn btn-outline" onClick={() => setIsAdding(false)} style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+            </div>
+          </form>
+        )}
       </div>
 
       <div className="glass-panel" style={{ padding: '1.5rem' }}>

@@ -1,17 +1,22 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Users, Cross, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target } from 'lucide-react';
+import { Users, Cross, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target, Settings, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { parseISO, startOfWeek, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
-  const { data, currentUser, activeCellId } = useData();
-  const tableRef = useRef(null);
+  const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail } = useData();
+  const dashboardRef = useRef(null);
 
   const isAdmin = currentUser?.role === 'admin';
   const targetCellId = activeCellId || null;
   const targetCell = targetCellId ? data.cells.find(c => c.id === targetCellId) : null;
+
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+  const [newEmail, setNewEmail] = useState(targetCell?.email || '');
+  const [newPassword, setNewPassword] = useState('');
 
   // Time Filter State
   const [timeFilter, setTimeFilter] = useState('all');
@@ -140,13 +145,36 @@ const Dashboard = () => {
 
 
   const exportToPNG = async () => {
-    if (tableRef.current) {
-      const canvas = await html2canvas(tableRef.current, { backgroundColor: '#ffffff' });
+    if (dashboardRef.current) {
+      const canvas = await html2canvas(dashboardRef.current, { backgroundColor: '#ffffff' });
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
       link.download = 'dashboard-stats.png';
       link.click();
+    }
+  };
+
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetCellId) return;
+    try {
+      await updateCellEmail(targetCellId, newEmail);
+      alert('Email updated successfully!');
+    } catch (err: any) {
+      alert('Failed to update email: ' + err.message);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetCellId) return;
+    try {
+      await updateCellPassword(targetCellId, newPassword);
+      setNewPassword('');
+      alert('Password updated successfully!');
+    } catch (err: any) {
+      alert('Failed to update password: ' + err.message);
     }
   };
 
@@ -172,7 +200,46 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard" style={{ animation: 'var(--transition)' }}>
+    <div ref={dashboardRef} className="dashboard" style={{ animation: 'var(--transition)' }}>
+      <div data-html2canvas-ignore style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '0.5rem' }}>
+        <button className="btn btn-outline" onClick={exportToCSV}>
+          <Download size={16} /> Export CSV
+        </button>
+        <button className="btn btn-outline" onClick={exportToPNG}>
+          <ImageIcon size={16} /> Export PNG
+        </button>
+        {!isAdmin && targetCellId && (
+          <button className="btn btn-primary" onClick={() => setShowSettings(!showSettings)}>
+            <Settings size={16} /> Settings
+          </button>
+        )}
+      </div>
+
+      {showSettings && (
+        <div data-html2canvas-ignore className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', position: 'relative' }}>
+          <button onClick={() => setShowSettings(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <X size={20} />
+          </button>
+          <h3 style={{ marginTop: 0, color: 'var(--primary)', marginBottom: '1.5rem' }}>Cell Leader Settings</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+            <form onSubmit={handleUpdateEmail} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Registered Email</label>
+                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} required />
+              </div>
+              <button type="submit" className="btn btn-primary">Update Email</button>
+            </form>
+            <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Change Password</label>
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} placeholder="Enter new password" />
+              </div>
+              <button type="submit" className="btn btn-primary">Update Password</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
@@ -317,17 +384,9 @@ const Dashboard = () => {
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h3 style={{ margin: 0, color: 'var(--primary)' }}>Cell Performance Breakdown</h3>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-outline" onClick={exportToCSV} style={{ padding: '0.5rem', fontSize: '0.75rem' }}>
-                <Download size={16} /> CSV
-              </button>
-              <button className="btn btn-outline" onClick={exportToPNG} style={{ padding: '0.5rem', fontSize: '0.75rem' }}>
-                <ImageIcon size={16} /> PNG
-              </button>
-            </div>
           </div>
           
-          <div ref={tableRef} style={{ padding: '1rem', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ padding: '1rem', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
             <table className="data-grid">
               <thead>
                 <tr>

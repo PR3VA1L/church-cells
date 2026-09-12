@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions } = useData();
+  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword } = useData();
   
   // State for new cell
   const [newCellName, setNewCellName] = useState('');
   const [newCellLeader, setNewCellLeader] = useState('');
   const [newCellPassword, setNewCellPassword] = useState('');
+  const [newCellEmail, setNewCellEmail] = useState('');
+
+  // State for changing admin password
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+
+  // Passwords Visibility state
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const timeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
 
   // State for adding member
   const [memberCellId, setMemberCellId] = useState(data.cells[0]?.id || '');
@@ -21,11 +29,33 @@ const AdminPanel = () => {
 
   const handleCreateCell = (e: React.FormEvent) => {
     e.preventDefault();
-    createCell(newCellName, newCellLeader, newCellPassword);
+    createCell(newCellName, newCellLeader, newCellPassword, newCellEmail);
     setNewCellName('');
     setNewCellLeader('');
     setNewCellPassword('');
+    setNewCellEmail('');
     alert('Cell created successfully!');
+  };
+
+  const handleChangeAdminPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateAdminPassword(newAdminPassword);
+    setNewAdminPassword('');
+    alert('Admin password changed successfully!');
+  };
+
+  const togglePasswordVisibility = (cellId: string) => {
+    if (visiblePasswords[cellId]) {
+      setVisiblePasswords(prev => ({ ...prev, [cellId]: false }));
+      if (timeoutRefs.current[cellId]) clearTimeout(timeoutRefs.current[cellId]);
+    } else {
+      setVisiblePasswords(prev => ({ ...prev, [cellId]: true }));
+      // Set timeout for 20 seconds
+      if (timeoutRefs.current[cellId]) clearTimeout(timeoutRefs.current[cellId]);
+      timeoutRefs.current[cellId] = setTimeout(() => {
+        setVisiblePasswords(prev => ({ ...prev, [cellId]: false }));
+      }, 20000);
+    }
   };
 
   const handleAddMember = (e: React.FormEvent) => {
@@ -53,6 +83,18 @@ const AdminPanel = () => {
     const newPillars = [...pillars];
     newPillars[pIdx].pillar = newPillarName;
     setPillars(newPillars);
+  };
+
+  const addPillar = () => {
+    setPillars([...pillars, { pillar: "New Pillar", questions: ["New Question"] }]);
+  };
+
+  const removePillar = (pIdx: number) => {
+    if (window.confirm("Are you sure you want to delete this entire pillar?")) {
+      const newPillars = [...pillars];
+      newPillars.splice(pIdx, 1);
+      setPillars(newPillars);
+    }
   };
 
   const handleQuestionChange = (pIdx: number, qIdx: number, newQuestion: string) => {
@@ -101,7 +143,11 @@ const AdminPanel = () => {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Login Password</label>
-              <input value={newCellPassword} onChange={e => setNewCellPassword(e.target.value)} required />
+              <input value={newCellPassword} onChange={e => setNewCellPassword(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Leader Email (For Password Reset)</label>
+              <input type="email" value={newCellEmail} onChange={e => setNewCellEmail(e.target.value)} required />
             </div>
             <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Create Cell</button>
           </form>
@@ -132,6 +178,18 @@ const AdminPanel = () => {
           </form>
         </div>
 
+        {/* Change Admin Password Section */}
+        <div className="glass-panel" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
+          <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Change Admin Password</h3>
+          <form onSubmit={handleChangeAdminPassword} style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>New Admin Password</label>
+              <input type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary">Change Password</button>
+          </form>
+        </div>
+
         {/* Manage Existing Cells */}
         <div className="glass-panel" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
           <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Manage Existing Cells</h3>
@@ -149,7 +207,15 @@ const AdminPanel = () => {
                 <tr key={cell.id}>
                   <td style={{ fontWeight: '500' }}>{cell.name}</td>
                   <td>{cell.leaderName}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{cell.password}</td>
+                  <td style={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {visiblePasswords[cell.id] ? (cell.password || '(No Password)') : '••••••••'}
+                    <button 
+                      onClick={() => togglePasswordVisibility(cell.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {visiblePasswords[cell.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </td>
                   <td>
                     <button 
                       className="btn btn-outline" 
@@ -188,11 +254,20 @@ const AdminPanel = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
             {pillars.map((pillar, pIdx) => (
               <div key={pIdx} style={{ background: 'var(--surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <input 
-                  value={pillar.pillar}
-                  onChange={(e) => handlePillarChange(pIdx, e.target.value)}
-                  style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', paddingBottom: '0.25rem', outline: 'none' }}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <input 
+                    value={pillar.pillar}
+                    onChange={(e) => handlePillarChange(pIdx, e.target.value)}
+                    style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary)', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', paddingBottom: '0.25rem', outline: 'none' }}
+                  />
+                  <button 
+                    onClick={() => removePillar(pIdx)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.25rem' }}
+                    title="Delete Entire Pillar"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {pillar.questions.map((q, qIdx) => (
@@ -220,6 +295,16 @@ const AdminPanel = () => {
                 </div>
               </div>
             ))}
+            
+            {/* Add New Pillar Button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border)' }}>
+              <button 
+                onClick={addPillar}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                <Plus size={24} /> Add New Pillar
+              </button>
+            </div>
           </div>
         </div>
       </div>

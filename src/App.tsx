@@ -14,6 +14,18 @@ function AppContent() {
   const { currentUser, loading } = useData();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   if (loading) {
     return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
@@ -30,6 +42,11 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      {isOffline && (
+        <div style={{ backgroundColor: 'var(--danger)', color: 'white', padding: '0.5rem', textAlign: 'center', fontWeight: 'bold', width: '100%', position: 'sticky', top: 0, zIndex: 9999 }}>
+          You are currently offline. Changes may not be saved until you reconnect.
+        </div>
+      )}
       {/* Mobile Header */}
       <div className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
