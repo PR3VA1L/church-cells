@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 
 const Login = () => {
@@ -13,6 +13,20 @@ const Login = () => {
   const [isResetMode, setIsResetMode] = useState(false);
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // Automatically switch to setup mode if the cell has no password
+  useEffect(() => {
+    if (role === 'leader' && data.cells.length > 0) {
+      const cell = data.cells.find(c => c.id === cellId);
+      if (cell && !cell.password) {
+        setIsResetMode(true);
+        setError('First time login detected. Please set up your password.');
+      } else {
+        setIsResetMode(false);
+        setError('');
+      }
+    }
+  }, [cellId, role, data.cells]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
