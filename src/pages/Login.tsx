@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import emailjs from '@emailjs/browser';
 import { useData } from '../context/DataContext';
 
 const Login = () => {
@@ -95,16 +96,37 @@ const Login = () => {
     }
   };
 
-  const generateAndSendOTP = () => {
+  const generateAndSendOTP = async () => {
     const code = Math.floor(10000 + Math.random() * 90000).toString();
     setOtpCode(code);
     setTimer(120);
     setOtpInput('');
     setViewMode('verify');
     
-    // Simulating Email Sending
-    console.log(`[SIMULATED EMAIL] To: ${email} | Code: ${code}`);
-    alert(`[SIMULATED EMAIL SERVICE]\n\nAn email has been sent to ${email} with the verification code: ${code}`);
+    try {
+      const cellName = data.cells.find(c => c.id === cellId)?.name || 'your cell group';
+      
+      const templateParams = {
+        to_email: email,
+        verification_code: code,
+        cell_name: cellName
+      };
+
+      // Ensure environment variables are loaded
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+      if (!serviceId || !templateId || !publicKey) {
+        throw new Error("EmailJS configuration is missing.");
+      }
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      setSuccess(`A verification code was sent to ${email}`);
+    } catch (error: any) {
+      console.error('EmailJS Error:', error);
+      setError('Failed to send verification email: ' + (error.text || error.message));
+    }
   };
 
   const handleNotifyAdmin = async () => {
