@@ -13,10 +13,12 @@ const LatinCross = ({ size = 24, color = 'currentColor' }: { size?: number | str
       strokeLinecap="round" 
       strokeLinejoin="round"
     >
+      {/* Circle around the cross */}
+      <circle cx="12" cy="12" r="10.5" />
       {/* Vertical line - longer at bottom */}
-      <path d="M12 2v20" />
+      <path d="M12 4v16" />
       {/* Horizontal line - shorter, higher up */}
-      <path d="M7 8h10" />
+      <path d="M8 9h8" />
     </svg>
   );
 };
