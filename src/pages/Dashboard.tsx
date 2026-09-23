@@ -77,8 +77,6 @@ const Dashboard = () => {
   // Calculate Assessment Averages
   const assessmentStats = useMemo(() => {
     const stats: Record<number, Record<number, { sum: number, count: number }>> = {};
-    let totalSum = 0;
-    let totalCount = 0;
     
     data.pillarQuestions.forEach((pillar, pIdx) => {
       stats[pIdx] = {};
@@ -95,53 +93,85 @@ const Dashboard = () => {
           if (score > 0 && stats[pIdx] && stats[pIdx][qIdx]) {
             stats[pIdx][qIdx].sum += score;
             stats[pIdx][qIdx].count += 1;
-            totalSum += score;
-            totalCount += 1;
           }
         });
       });
     });
 
-    const overallAvg = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '0.0';
+    let answeredPillarsCount = 0;
+    let sumOfPillarAverages = 0;
+
+    data.pillarQuestions.forEach((pillar, pIdx) => {
+      let pSum = 0;
+      let hasAnswers = false;
+      pillar.questions.forEach((_, qIdx) => {
+        pSum += stats[pIdx]?.[qIdx]?.sum || 0;
+        if ((stats[pIdx]?.[qIdx]?.count || 0) > 0) {
+          hasAnswers = true;
+        }
+      });
+      
+      if (hasAnswers) {
+        const divisor = (totalMembers > 0 ? totalMembers : 1) * pillar.questions.length;
+        const pAvg = pSum / divisor;
+        sumOfPillarAverages += pAvg;
+        answeredPillarsCount++;
+      }
+    });
+
+    const overallAvgNum = answeredPillarsCount > 0 ? (sumOfPillarAverages / answeredPillarsCount) : 0;
+    const overallAvg = overallAvgNum.toFixed(1);
+    
     return { stats, overallAvg };
-  }, [filteredAssessments, data.pillarQuestions]);
+  }, [filteredAssessments, data.pillarQuestions, totalMembers]);
 
   const trendData = useMemo(() => {
     const byDate: Record<string, any> = {};
     
     filteredAssessments.forEach(a => {
       if (!byDate[a.date]) {
-        byDate[a.date] = { date: a.date, sum: [0, 0, 0, 0], count: [0, 0, 0, 0] };
+        byDate[a.date] = { date: a.date, sum: [0, 0, 0, 0], hasAnswers: [false, false, false, false] };
       }
       
       data.pillarQuestions.forEach((pillar, pIdx) => {
         let pSum = 0;
-        let pCount = 0;
+        let pHasAnswers = false;
         Object.entries(a.scores[pIdx] || {}).forEach(([_, score]) => {
           if (score > 0) {
             pSum += score;
-            pCount++;
+            pHasAnswers = true;
           }
         });
         byDate[a.date].sum[pIdx] += pSum;
-        byDate[a.date].count[pIdx] += pCount;
+        if (pHasAnswers) byDate[a.date].hasAnswers[pIdx] = true;
       });
     });
 
     const formatted = Object.values(byDate).map(d => {
       const item: any = { name: format(parseISO(d.date), 'MMM dd') };
+      
+      let sumOfAverages = 0;
+      let answeredCount = 0;
+      
       data.pillarQuestions.forEach((p, pIdx) => {
-        item[p.pillar] = d.count[pIdx] > 0 ? Number((d.sum[pIdx] / d.count[pIdx]).toFixed(1)) : null;
+        if (d.hasAnswers[pIdx]) {
+          const divisor = (totalMembers > 0 ? totalMembers : 1) * p.questions.length;
+          const pAvg = d.sum[pIdx] / divisor;
+          item[p.pillar] = Number(pAvg.toFixed(1));
+          sumOfAverages += pAvg;
+          answeredCount++;
+        } else {
+          item[p.pillar] = null;
+        }
       });
-      const totalSum = d.sum.reduce((a: number, b: number) => a + b, 0);
-      const totalCount = d.count.reduce((a: number, b: number) => a + b, 0);
-      item['Overall'] = totalCount > 0 ? Number((totalSum / totalCount).toFixed(1)) : null;
+      
+      item['Overall'] = answeredCount > 0 ? Number((sumOfAverages / answeredCount).toFixed(1)) : null;
       item._rawDate = d.date;
       return item;
     });
 
     return formatted.sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());
-  }, [filteredAssessments, data.pillarQuestions]);
+  }, [filteredAssessments, data.pillarQuestions, totalMembers]);
 
 
   const exportToPNG = async () => {
@@ -324,12 +354,16 @@ const Dashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
             {data.pillarQuestions.map((pillar, pIdx) => {
               let pSum = 0;
-              let pCount = 0;
+              let hasAnswers = false;
               pillar.questions.forEach((_, qIdx) => {
                 pSum += assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
-                pCount += assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
+                if ((assessmentStats.stats[pIdx]?.[qIdx]?.count || 0) > 0) {
+                  hasAnswers = true;
+                }
               });
-              const pAvgNum = pCount > 0 ? (pSum / pCount) : 0;
+              
+              const divisor = (totalMembers > 0 ? totalMembers : 1) * pillar.questions.length;
+              const pAvgNum = hasAnswers ? (pSum / divisor) : 0;
               const pAvg = pAvgNum.toFixed(1);
               
               // Determine overall color for the pillar
@@ -348,8 +382,8 @@ const Dashboard = () => {
                     {pillar.questions.map((question, qIdx) => {
                       const qSum = assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
                       const qCount = assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
-                      const qAvg = qCount > 0 ? (qSum / qCount).toFixed(1) : '0.0';
-                      const qAvgNum = parseFloat(qAvg);
+                      const qAvgNum = qCount > 0 ? (qSum / (totalMembers > 0 ? totalMembers : 1)) : 0;
+                      const qAvg = qAvgNum.toFixed(1);
                       const widthPct = (qAvgNum / 5) * 100;
                       
                       const barColor = qAvgNum >= 4 ? 'var(--success)' : qAvgNum >= 2.5 ? 'var(--warning)' : 'var(--danger)';

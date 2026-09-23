@@ -40,6 +40,8 @@ export default function Assessments() {
 
   // Initialize scores from existing data if available for this date
   React.useEffect(() => {
+    if (hasUnsavedChanges) return; // Do not overwrite if user has unsaved changes
+
     const existingScores: Record<string, any> = {};
     const assessmentsForDate = data.assessments.filter(a => a.cellId === activeCellId && a.date === date);
     
@@ -52,8 +54,7 @@ export default function Assessments() {
       }
     });
     setScores(existingScores);
-    setHasUnsavedChanges(false);
-  }, [activeCellId, date, data.assessments, data.roster]); // Re-run when date changes
+  }, [activeCellId, date, data.assessments, data.roster, hasUnsavedChanges]); // Re-run when date changes
 
   const handleScoreChange = (memberId: string, pillarIndex: number, questionIndex: number, val: number) => {
     setScores(prev => {
@@ -70,6 +71,24 @@ export default function Assessments() {
   const handleSave = async (autoSaveScores?: any, autoSaveDate?: string) => {
     const currentScores = autoSaveScores || scores;
     const currentDate = autoSaveDate || date;
+    
+    // Validation: Prevent saving if a pillar is only partially answered
+    for (const [memberId, memberScores] of Object.entries(currentScores)) {
+      for (let pIdx = 0; pIdx < pillars.length; pIdx++) {
+        const pillarScores = (memberScores as any)[pIdx] || {};
+        let answeredCount = 0;
+        pillars[pIdx].questions.forEach((_, qIdx) => {
+          if (pillarScores[qIdx] > 0) answeredCount++;
+        });
+        
+        if (answeredCount > 0 && answeredCount < pillars[pIdx].questions.length) {
+          const member = members.find(m => m.id === memberId);
+          alert(`You must answer all questions for a pillar in order to save. Please complete the ${pillars[pIdx].pillar} pillar for ${member?.name || 'a member'} or remove the answers.`);
+          return; // Abort save
+        }
+      }
+    }
+
     setIsSaving(true);
     setSuccessMsg('');
     try {

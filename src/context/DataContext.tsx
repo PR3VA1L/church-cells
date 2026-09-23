@@ -326,6 +326,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const newCell: Cell = { id, name, leaderName, password, email };
       const { error } = await supabase.from('cells').insert({ id, name, leadername: leaderName, password, email });
       if (error) throw error;
+
+      // Add leader to the roster so they can be evaluated
+      const memberId = Date.now().toString() + Math.floor(Math.random() * 1000);
+      const { error: rosterError } = await supabase.from('roster').insert({
+        id: memberId,
+        cellid: id,
+        name: leaderName,
+        phone: '',
+        type: 'M'
+      });
+      if (rosterError) throw rosterError;
     } catch (error: any) {
       alert("Error creating cell: " + error.message);
       throw error;
