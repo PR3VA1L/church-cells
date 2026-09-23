@@ -68,9 +68,11 @@ export default function Assessments() {
     setHasUnsavedChanges(true);
   };
 
-  const handleSave = async (autoSaveScores?: any, autoSaveDate?: string) => {
-    const currentScores = autoSaveScores || scores;
-    const currentDate = autoSaveDate || date;
+  const handleSave = async (autoSaveScores?: any, autoSaveDate?: any) => {
+    // Ignore React synthetic events passed from onClick
+    const isEvent = autoSaveScores && typeof autoSaveScores === 'object' && 'nativeEvent' in autoSaveScores;
+    const currentScores = (!isEvent && autoSaveScores) ? autoSaveScores : scores;
+    const currentDate = typeof autoSaveDate === 'string' ? autoSaveDate : date;
     
     // Validation: Prevent saving if a pillar is only partially answered
     for (const [memberId, memberScores] of Object.entries(currentScores)) {
@@ -166,7 +168,7 @@ export default function Assessments() {
           </div>
           <button 
             className="btn btn-primary" 
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={isSaving}
             style={{ minWidth: '150px' }}
           >
