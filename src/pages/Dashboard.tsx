@@ -1,9 +1,10 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Users, Cross, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target, Settings, X } from 'lucide-react';
+import { Users, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target, Settings, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { parseISO, startOfWeek, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import LatinCross from '../components/LatinCross';
 
 const Dashboard = () => {
   const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail } = useData();
@@ -308,7 +309,7 @@ const Dashboard = () => {
         <StatCard icon={<Activity />} title="Avg Weekly Attendance" value={avgAttendance} color="var(--primary)" />
         <StatCard icon={<Users />} title={!targetCellId ? "Total Active Members" : "Active Members"} value={totalMembers} color="var(--secondary)" />
         <StatCard icon={<UserPlus />} title={!targetCellId ? "Total New Visitors" : "New Visitors"} value={totalVisitors} color="var(--warning)" />
-        <StatCard icon={<Cross />} title={!targetCellId ? "Total Salvations" : "Salvations"} value={totalSalvations} color="#3b82f6" />
+        <StatCard icon={<LatinCross size={24} />} title={!targetCellId ? "Total Salvations" : "Salvations"} value={totalSalvations} color="#3b82f6" />
         <StatCard icon={<Target />} title="Overall Pillar Average" value={`${assessmentStats.overallAvg} / 5`} color="#10b981" />
       </div>
 

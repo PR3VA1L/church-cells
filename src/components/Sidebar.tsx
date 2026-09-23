@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { LayoutDashboard, Users, UserCheck, Settings, LogOut, Shield, FileText, Cross } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, Settings, LogOut, Shield, FileText } from 'lucide-react';
+import LatinCross from './LatinCross';
 
 const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) => {
   const { data, currentUser, logout, activeCellId, setActiveCellId } = useData();
@@ -13,7 +14,7 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
     <div className="sidebar">
       <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
         <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
-          <Cross size={20} /> CellSystem
+          <LatinCross size={20} /> CellSystem
         </h2>
         <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           Logged in as: <strong style={{ color: 'var(--text-main)' }}>{currentUser?.role === 'admin' ? 'Administrator' : 'Cell Leader'}</strong>

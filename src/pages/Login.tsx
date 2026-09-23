@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
 import { useData } from '../context/DataContext';
-import { Cross } from 'lucide-react';
+import LatinCross from '../components/LatinCross';
 
 const Login = () => {
   const { data, login, updateCellPassword, updateCellEmail, notifyAdminForReset } = useData();
@@ -146,7 +146,7 @@ const Login = () => {
       <div className="glass-panel" style={{ padding: '2.5rem', width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <h1 style={{ color: 'var(--primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Cross size={32} /> CellSystem Auth
+            <LatinCross size={32} /> CellSystem Auth
           </h1>
           <p className="text-muted">Sign in to manage your cell group.</p>
         </div>

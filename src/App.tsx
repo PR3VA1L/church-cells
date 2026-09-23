@@ -7,7 +7,8 @@ import AttendanceRegister from './pages/AttendanceRegister';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Assessments from './pages/Assessments';
-import { Menu, Cross } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import LatinCross from './components/LatinCross';
 import './index.css';
 
 function AppContent() {
@@ -51,7 +52,7 @@ function AppContent() {
       <div className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Cross size={20} /> CellSystem
+            <LatinCross size={20} /> CellSystem
           </span>
         </div>
         <button className="btn" onClick={() => setIsMobileMenuOpen(true)} style={{ padding: '0.25rem', background: 'transparent', color: 'var(--primary)' }}>
