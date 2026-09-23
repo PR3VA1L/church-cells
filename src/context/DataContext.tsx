@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../config/supabase';
 
+export interface NotificationMsg {
+  id: string;
+  message: string;
+  type: 'error' | 'success' | 'info';
+}
+
 export interface Cell {
   id: string;
   name: string;
@@ -85,7 +91,6 @@ export interface Assessment {
 
 export interface AppData {
   cells: Cell[];
-  adminPassword?: string;
   pillarQuestions: PillarQuestion[];
   roster: Member[];
   meetings: Meeting[];
@@ -101,7 +106,7 @@ interface DataContextType {
   data: AppData;
   setData: React.Dispatch<React.SetStateAction<AppData>>;
   currentUser: CurrentUser | null;
-  login: (role: 'admin' | 'leader', password: string, cellId?: string | null) => boolean;
+  login: (role: 'admin' | 'leader', password: string, cellId?: string | null) => Promise<boolean>;
   logout: () => void;
   activeCellId: string | null;
   setActiveCellId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -123,13 +128,15 @@ interface DataContextType {
   updateAdminPassword: (newPassword: string) => Promise<void>;
   updatePillarQuestions: (questions: PillarQuestion[]) => Promise<void>;
   loading: boolean;
+  notifications: NotificationMsg[];
+  addNotification: (message: string, type: 'error' | 'success' | 'info') => void;
+  removeNotification: (id: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const defaultData: AppData = {
   cells: [],
-  adminPassword: '123',
   pillarQuestions: DEFAULT_PILLAR_QUESTIONS,
   roster: [],
   meetings: [],
@@ -139,6 +146,16 @@ const defaultData: AppData = {
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<AppData>(defaultData);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<NotificationMsg[]>([]);
+
+  const addNotification = (message: string, type: 'error' | 'success' | 'info') => {
+    const id = crypto.randomUUID();
+    setNotifications(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
   
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
     const saved = localStorage.getItem('church-cell-current-user');
@@ -164,52 +181,70 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [activeCellId]);
 
-  // Realtime Database Listeners
+  // Realtime Database Listeners & Data Fetching
   useEffect(() => {
     const fetchData = async () => {
-      const [cellsRes, rosterRes, meetingsRes, assessmentsRes, settingsRes] = await Promise.all([
-        supabase.from('cells').select('*'),
-        supabase.from('roster').select('*'),
-        supabase.from('meetings').select('*'),
-        supabase.from('assessments').select('*'),
-        supabase.from('settings').select('*')
-      ]);
+      try {
+        const cellsQuery = supabase.from('cells').select('id, name, leadername, email, reset_requested, custom_questions, custom_stop_words');
+        const settingsQuery = supabase.from('settings').select('id, pillar_questions');
+        
+        let rosterQuery = supabase.from('roster').select('*');
+        let meetingsQuery = supabase.from('meetings').select('*');
+        let assessmentsQuery = supabase.from('assessments').select('*');
 
-      const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
+        if (currentUser?.role === 'leader' && currentUser.cellId) {
+          rosterQuery = rosterQuery.eq('cellid', currentUser.cellId);
+          meetingsQuery = meetingsQuery.eq('cellid', currentUser.cellId);
+          assessmentsQuery = assessmentsQuery.eq('cellid', currentUser.cellId);
+        } else if (!currentUser) {
+          // If not logged in, don't fetch heavy data
+          rosterQuery = rosterQuery.limit(0);
+          meetingsQuery = meetingsQuery.limit(0);
+          assessmentsQuery = assessmentsQuery.limit(0);
+        }
 
-      setData({
-        cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername, email: c.email, custom_questions: c.custom_questions, custom_stop_words: c.custom_stop_words })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
-        roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
-        meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
-        assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
-        pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS,
-        adminPassword: adminSettings?.adminpassword || '123'
-      });
-      setLoading(false);
+        const [cellsRes, rosterRes, meetingsRes, assessmentsRes, settingsRes] = await Promise.all([
+          cellsQuery, rosterQuery, meetingsQuery, assessmentsQuery, settingsQuery
+        ]);
+
+        const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
+
+        setData({
+          cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
+          roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
+          meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
+          assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
+          pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS
+        });
+      } catch (err) {
+        console.error("Failed to fetch data", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
 
-    // 60-second polling fallback
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 60000);
-
-    const channel = supabase.channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public' },
-        (payload: any) => {
-          fetchData();
-        }
-      )
-      .subscribe();
+    // Subscribe to realtime updates only when logged in
+    let channel: any;
+    if (currentUser) {
+      channel = supabase.channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public' },
+          () => {
+            fetchData();
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
-      clearInterval(intervalId);
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, []);
+  }, [currentUser]); // Re-run when user logs in or out
 
   // When logging in as leader, default their active cell
   useEffect(() => {
@@ -218,19 +253,26 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [currentUser]);
 
-  const login = (role: 'admin' | 'leader', password: string, cellId: string | null = null) => {
-    if (role === 'admin' && password === data.adminPassword) {
-      setCurrentUser({ role: 'admin' });
-      return true;
-    }
-    if (role === 'leader') {
-      const cell = data.cells.find(c => c.id === cellId);
-      if (cell && cell.password === password) {
-        setCurrentUser({ role: 'leader', cellId: cellId || null });
-        return true;
+  const login = async (role: 'admin' | 'leader', password: string, cellId: string | null = null) => {
+    try {
+      if (role === 'admin') {
+        const { data: adminSettings, error } = await supabase.from('settings').select('adminpassword').eq('id', 'admin').single();
+        if (!error && adminSettings && adminSettings.adminpassword === password) {
+          setCurrentUser({ role: 'admin' });
+          return true;
+        }
+      } else if (role === 'leader' && cellId) {
+        const { data: cell, error } = await supabase.from('cells').select('password').eq('id', cellId).single();
+        if (!error && cell && cell.password === password) {
+          setCurrentUser({ role: 'leader', cellId });
+          return true;
+        }
       }
+      return false;
+    } catch (err) {
+      console.error("Login error:", err);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -243,8 +285,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('roster').update({ type: newType }).eq('id', memberId);
       if (error) throw error;
+      addNotification("Member status updated.", "success");
     } catch (error: any) {
-      alert("Error updating member status: " + error.message);
+      addNotification("Error updating member status: " + error.message, "error");
       throw error;
     }
   };
@@ -253,8 +296,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('roster').update({ phone, type }).eq('id', memberId);
       if (error) throw error;
+      addNotification("Member info updated.", "success");
     } catch (error: any) {
-      alert("Error updating member: " + error.message);
+      addNotification("Error updating member: " + error.message, "error");
       throw error;
     }
   };
@@ -263,34 +307,37 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('roster').delete().eq('id', memberId);
       if (error) throw error;
+      addNotification("Member removed.", "success");
     } catch (error: any) {
-      alert("Error removing member: " + error.message);
+      addNotification("Error removing member: " + error.message, "error");
       throw error;
     }
   };
 
   const addVisitor = async (cellId: string, name: string, phone: string) => {
     try {
-      const id = Date.now().toString();
+      const id = crypto.randomUUID();
       const newVisitor: Member = { id, cellId, name, phone, type: 'V' };
       const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'V' });
       if (error) throw error;
+      addNotification("Visitor added successfully.", "success");
       return newVisitor;
     } catch (error: any) {
-      alert("Error adding visitor: " + error.message);
+      addNotification("Error adding visitor: " + error.message, "error");
       throw error;
     }
   };
 
   const addMember = async (cellId: string, name: string, phone: string) => {
     try {
-      const id = Date.now().toString();
+      const id = crypto.randomUUID();
       const newMember: Member = { id, cellId, name, phone, type: 'M' };
       const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'M' });
       if (error) throw error;
+      addNotification("Member added successfully.", "success");
       return newMember;
     } catch (error: any) {
-      alert("Error adding member: " + error.message);
+      addNotification("Error adding member: " + error.message, "error");
       throw error;
     }
   };
@@ -301,20 +348,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const { cellId, ...rest } = meeting;
       const { error } = await supabase.from('meetings').upsert({ ...rest, id: docId, cellid: cellId });
       if (error) throw error;
+      addNotification("Attendance register saved.", "success");
     } catch (error: any) {
-      alert("Error saving meeting: " + error.message);
+      addNotification("Error saving meeting: " + error.message, "error");
       throw error;
     }
   };
 
   const saveAssessment = async (assessment: Assessment) => {
     try {
-      // id is already memberId_date
       const { cellId, memberId, ...rest } = assessment;
       const { error } = await supabase.from('assessments').upsert({ ...rest, cellid: cellId, memberid: memberId, id: assessment.id });
       if (error) throw error;
     } catch (error: any) {
-      alert("Error saving assessment: " + error.message);
+      addNotification("Error saving assessment: " + error.message, "error");
       throw error;
     }
   };
@@ -322,13 +369,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Admin Features
   const createCell = async (name: string, leaderName: string, password?: string, email?: string) => {
     try {
-      const id = Date.now().toString();
+      const id = crypto.randomUUID();
       const newCell: Cell = { id, name, leaderName, password, email };
       const { error } = await supabase.from('cells').insert({ id, name, leadername: leaderName, password, email });
       if (error) throw error;
 
       // Add leader to the roster so they can be evaluated
-      const memberId = Date.now().toString() + Math.floor(Math.random() * 1000);
+      const memberId = crypto.randomUUID();
       const { error: rosterError } = await supabase.from('roster').insert({
         id: memberId,
         cellid: id,
@@ -427,8 +474,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').update({ pillar_questions: questions }).eq('id', 'admin');
       if (error) throw error;
+      addNotification("Pillars updated.", "success");
     } catch (error: any) {
-      alert("Error updating pillar questions: " + error.message);
+      addNotification("Error updating pillar questions: " + error.message, "error");
       throw error;
     }
   };
@@ -440,7 +488,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMember, removeMember, addVisitor, addMember, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
-      loading
+      loading, notifications, addNotification, removeNotification
     }}>
       {children}
     </DataContext.Provider>

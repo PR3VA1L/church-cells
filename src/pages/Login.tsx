@@ -10,6 +10,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // View State
   const [viewMode, setViewMode] = useState<'login' | 'setup' | 'forgot' | 'verify' | 'reset'>('login');
@@ -47,13 +48,21 @@ const Login = () => {
     }
   }, [cellId, role, data.cells]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    const successLogin = login(role, password, role === 'leader' ? cellId : null);
-    if (!successLogin) {
-      setError('Invalid password. Please try again.');
+    setIsLoading(true);
+    
+    try {
+      const successLogin = await login(role, password, role === 'leader' ? cellId : null);
+      if (!successLogin) {
+        setError('Invalid password. Please try again.');
+      }
+    } catch (err) {
+      setError('A network error occurred. Please check your connection.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -289,8 +298,8 @@ const Login = () => {
 
             {error && <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'center' }}>{error}</div>}
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', padding: '0.75rem' }}>
-              Login securely
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', padding: '0.75rem' }} disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login securely'}
             </button>
             {role === 'leader' && (
               <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>

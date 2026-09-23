@@ -7,12 +7,38 @@ import AttendanceRegister from './pages/AttendanceRegister';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Assessments from './pages/Assessments';
-import { Menu } from 'lucide-react';
+import { Menu, WifiOff, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import LatinCross from './components/LatinCross';
 import './index.css';
 
+// Simple Toast component
+const Toast = ({ message, type, onClose }: { message: string, type: 'error' | 'success' | 'info', onClose: () => void }) => {
+  const Icon = type === 'error' ? AlertTriangle : type === 'success' ? CheckCircle2 : Info;
+  const bgColor = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : '#3b82f6';
+  
+  React.useEffect(() => {
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.75rem',
+      backgroundColor: bgColor, color: 'white',
+      padding: '1rem', borderRadius: 'var(--radius-md)',
+      boxShadow: 'var(--shadow-lg)',
+      animation: 'slide-up 0.3s ease-out forwards',
+      pointerEvents: 'auto',
+      marginBottom: '0.5rem'
+    }}>
+      <Icon size={20} />
+      <span style={{ fontWeight: '500' }}>{message}</span>
+    </div>
+  );
+};
+
 function AppContent() {
-  const { currentUser, loading } = useData();
+  const { currentUser, loading, notifications, removeNotification } = useData();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -43,11 +69,33 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      {/* Offline Overlay overlay when fully disconnected */}
       {isOffline && (
-        <div style={{ backgroundColor: 'var(--danger)', color: 'white', padding: '0.5rem', textAlign: 'center', fontWeight: 'bold', width: '100%', position: 'sticky', top: 0, zIndex: 9999 }}>
-          You are currently offline. Changes may not be saved until you reconnect.
+        <div style={{ 
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+          zIndex: 99999, display: 'flex', flexDirection: 'column', 
+          alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' 
+        }}>
+          <WifiOff size={64} color="var(--danger)" style={{ marginBottom: '1rem' }} />
+          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Connection Lost</h2>
+          <p className="text-muted" style={{ textAlign: 'center', maxWidth: '400px' }}>
+            It looks like you're offline. Please check your internet connection. 
+            The app will automatically resume once you're back online.
+          </p>
         </div>
       )}
+
+      {/* Global Notifications Container */}
+      <div style={{
+        position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999,
+        display: 'flex', flexDirection: 'column', pointerEvents: 'none',
+        maxWidth: '350px'
+      }}>
+        {notifications.map(n => (
+          <Toast key={n.id} message={n.message} type={n.type} onClose={() => removeNotification(n.id)} />
+        ))}
+      </div>
       {/* Mobile Header */}
       <div className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

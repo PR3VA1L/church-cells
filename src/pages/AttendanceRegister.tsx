@@ -50,20 +50,24 @@ const AttendanceRegister = () => {
     setIsSaved(false);
   };
 
-  const handleSave = () => {
-    saveMeeting({
-      id: Date.now().toString(),
-      cellId: activeCellId as string,
-      date,
-      attendees: Array.from(attendedIds),
-      salvations,
-      welfare
-    });
-    setIsSaved(true);
-    setTimeout(() => {
-      setIsSaved(false);
-      setIsFormOpen(false);
-    }, 1000);
+  const handleSave = async () => {
+    try {
+      await saveMeeting({
+        id: crypto.randomUUID(),
+        cellId: activeCellId as string,
+        date,
+        attendees: Array.from(attendedIds),
+        salvations,
+        welfare
+      });
+      setIsSaved(true);
+      setTimeout(() => {
+        setIsSaved(false);
+        setIsFormOpen(false);
+      }, 1000);
+    } catch (err: any) {
+      alert("Failed to save attendance: " + err.message);
+    }
   };
 
   const handleEdit = (reportDate: string) => {

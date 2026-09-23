@@ -75,6 +75,7 @@ export default function Assessments() {
     const currentDate = typeof autoSaveDate === 'string' ? autoSaveDate : date;
     
     // Validation: Prevent saving if a pillar is only partially answered
+    let hasValidationError = false;
     for (const [memberId, memberScores] of Object.entries(currentScores)) {
       for (let pIdx = 0; pIdx < pillars.length; pIdx++) {
         const pillarScores = (memberScores as any)[pIdx] || {};
@@ -84,11 +85,19 @@ export default function Assessments() {
         });
         
         if (answeredCount > 0 && answeredCount < pillars[pIdx].questions.length) {
-          const member = members.find(m => m.id === memberId);
-          alert(`You must answer all questions for a pillar in order to save. Please complete the ${pillars[pIdx].pillar} pillar for ${member?.name || 'a member'} or remove the answers.`);
-          return; // Abort save
+          hasValidationError = true;
+          if (!autoSaveScores) {
+            const member = members.find(m => m.id === memberId);
+            alert(`You must answer all questions for a pillar in order to save. Please complete the ${pillars[pIdx].pillar} pillar for ${member?.name || 'a member'} or remove the answers.`);
+            return; // Abort manual save
+          }
         }
       }
+    }
+
+    if (hasValidationError && autoSaveScores) {
+      // For autosave, just silently abort. Don't throw an alert.
+      return; 
     }
 
     setIsSaving(true);
