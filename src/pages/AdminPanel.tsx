@@ -34,14 +34,12 @@ const AdminPanel = () => {
     setNewCellLeader('');
     setNewCellPassword('');
     setNewCellEmail('');
-    alert('Cell created successfully!');
   };
 
   const handleChangeAdminPassword = (e: React.FormEvent) => {
     e.preventDefault();
     updateAdminPassword(newAdminPassword);
     setNewAdminPassword('');
-    alert('Admin password changed successfully!');
   };
 
   const togglePasswordVisibility = (cellId: string) => {
@@ -63,7 +61,6 @@ const AdminPanel = () => {
     addMember(memberCellId, memberName, memberPhone);
     setMemberName('');
     setMemberPhone('');
-    alert('Member added successfully!');
   };
 
   const handleChangePassword = (cellId: string, currentPassword?: string) => {
@@ -118,7 +115,6 @@ const AdminPanel = () => {
   const savePillars = async () => {
     setIsSavingPillars(true);
     await updatePillarQuestions(pillars);
-    alert('Global Pillar Questions saved successfully!');
     setIsSavingPillars(false);
   };
 

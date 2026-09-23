@@ -185,7 +185,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const cellsQuery = supabase.from('cells').select('id, name, leadername, email, reset_requested, custom_questions, custom_stop_words');
+        const cellsQuery = supabase.from('cells').select('id, name, leadername, email, password, reset_requested, custom_questions, custom_stop_words');
         const settingsQuery = supabase.from('settings').select('id, pillar_questions');
         
         let rosterQuery = supabase.from('roster').select('*');
@@ -384,8 +384,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         type: 'M'
       });
       if (rosterError) throw rosterError;
+      addNotification("Cell created successfully.", "success");
     } catch (error: any) {
-      alert("Error creating cell: " + error.message);
+      addNotification("Error creating cell: " + error.message, "error");
       throw error;
     }
   };
@@ -394,8 +395,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').delete().eq('id', cellId);
       if (error) throw error;
+      addNotification("Cell deleted.", "success");
     } catch (error: any) {
-      alert("Error deleting cell: " + error.message);
+      addNotification("Error deleting cell: " + error.message, "error");
       throw error;
     }
   };
@@ -404,8 +406,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ password: newPassword }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Cell password updated.", "success");
     } catch (error: any) {
-      alert("Error updating password: " + error.message);
+      addNotification("Error updating password: " + error.message, "error");
       throw error;
     }
   };
@@ -414,8 +417,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ email: newEmail }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Cell email updated.", "success");
     } catch (error: any) {
-      alert("Error updating email: " + error.message);
+      addNotification("Error updating email: " + error.message, "error");
       throw error;
     }
   };
@@ -424,8 +428,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ reset_requested: true }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Admin notified.", "success");
     } catch (error: any) {
-      alert("Error notifying admin: " + error.message);
+      addNotification("Error notifying admin: " + error.message, "error");
       throw error;
     }
   };
@@ -434,8 +439,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ reset_requested: false }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Reset notification cleared.", "success");
     } catch (error: any) {
-      alert("Error clearing notification: " + error.message);
+      addNotification("Error clearing notification: " + error.message, "error");
       throw error;
     }
   };
@@ -444,8 +450,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ custom_questions: questions }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Custom questions updated.", "success");
     } catch (error: any) {
-      alert("Error updating questions: " + error.message);
+      addNotification("Error updating questions: " + error.message, "error");
       throw error;
     }
   };
@@ -454,8 +461,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').update({ custom_stop_words: words }).eq('id', cellId);
       if (error) throw error;
+      addNotification("Stop words updated.", "success");
     } catch (error: any) {
-      alert("Error updating stop words: " + error.message);
+      addNotification("Error updating stop words: " + error.message, "error");
       throw error;
     }
   };
@@ -464,8 +472,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').update({ adminpassword: newPassword }).eq('id', 'admin');
       if (error) throw error;
+      addNotification("Admin password updated.", "success");
     } catch (error: any) {
-      alert("Error updating admin password: " + error.message);
+      addNotification("Error updating admin password: " + error.message, "error");
       throw error;
     }
   };

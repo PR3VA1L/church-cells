@@ -7,7 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import LatinCross from '../components/LatinCross';
 
 const Dashboard = () => {
-  const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail } = useData();
+  const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail, addNotification } = useData();
   const dashboardRef = useRef(null);
 
   const isAdmin = currentUser?.role === 'admin';
@@ -191,9 +191,8 @@ const Dashboard = () => {
     if (!targetCellId) return;
     try {
       await updateCellEmail(targetCellId, newEmail);
-      alert('Email updated successfully!');
     } catch (err: any) {
-      alert('Failed to update email: ' + err.message);
+      // DataContext already handles notification
     }
   };
 
@@ -203,9 +202,8 @@ const Dashboard = () => {
     try {
       await updateCellPassword(targetCellId, newPassword);
       setNewPassword('');
-      alert('Password updated successfully!');
     } catch (err: any) {
-      alert('Failed to update password: ' + err.message);
+      // DataContext already handles notification
     }
   };
 
