@@ -185,7 +185,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const cellsQuery = supabase.from('cells').select('id, name, leadername, email, password, reset_requested, custom_questions, custom_stop_words');
+        const columns = currentUser?.role === 'admin' 
+          ? 'id, name, leadername, email, password, reset_requested, custom_questions, custom_stop_words'
+          : 'id, name, leadername, email, reset_requested, custom_questions, custom_stop_words';
+        
+        const cellsQuery = supabase.from('cells').select(columns);
         const settingsQuery = supabase.from('settings').select('id, pillar_questions');
         
         let rosterQuery = supabase.from('roster').select('*');

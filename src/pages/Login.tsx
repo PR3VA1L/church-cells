@@ -37,7 +37,7 @@ const Login = () => {
   useEffect(() => {
     if (role === 'leader' && data.cells.length > 0) {
       const cell = data.cells.find(c => c.id === cellId);
-      if (cell && !cell.password) {
+      if (cell && !cell.email) {
         setViewMode('setup');
         setError('');
       } else if (viewMode === 'setup') {
