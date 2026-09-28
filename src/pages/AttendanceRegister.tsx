@@ -15,6 +15,7 @@ const AttendanceRegister = () => {
   const [salvations, setSalvations] = useState(0);
   const [welfare, setWelfare] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const [showNewVisitor, setShowNewVisitor] = useState(false);
   const [visitorName, setVisitorName] = useState('');
@@ -37,6 +38,7 @@ const AttendanceRegister = () => {
       setWelfare(0);
     }
     setIsSaved(false);
+    setHasUnsavedChanges(false);
   }, [date, activeCellId, data.meetings]);
 
   const toggleAttendance = (id: string) => {
@@ -48,6 +50,7 @@ const AttendanceRegister = () => {
     }
     setAttendedIds(newSet);
     setIsSaved(false);
+    setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
@@ -61,6 +64,7 @@ const AttendanceRegister = () => {
         welfare
       });
       setIsSaved(true);
+      setHasUnsavedChanges(false);
       setTimeout(() => {
         setIsSaved(false);
         setIsFormOpen(false);
@@ -115,7 +119,16 @@ const AttendanceRegister = () => {
             <input 
               type="date" 
               value={date} 
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                if (hasUnsavedChanges) {
+                  if (confirm("You have unsaved changes. Discard them and switch date?")) {
+                    setHasUnsavedChanges(false);
+                    setDate(e.target.value);
+                  }
+                } else {
+                  setDate(e.target.value);
+                }
+              }}
               style={{ width: 'auto', fontWeight: '500', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}
             />
             <button className="btn btn-primary" onClick={handleSave} style={{ backgroundColor: isSaved ? 'var(--success)' : '' }}>
@@ -199,11 +212,11 @@ const AttendanceRegister = () => {
               <div style={{ display: 'flex', gap: '1.5rem' }}>
                 <div style={{ flex: 1 }}>
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Salvations / Rededications</label>
-                  <input type="number" min="0" value={salvations} onChange={e => { setSalvations(parseInt(e.target.value, 10) || 0); setIsSaved(false); }} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                  <input type="number" min="0" value={salvations} onChange={e => { setSalvations(parseInt(e.target.value, 10) || 0); setIsSaved(false); setHasUnsavedChanges(true); }} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Welfare Follow-ups Needed</label>
-                  <input type="number" min="0" value={welfare} onChange={e => { setWelfare(parseInt(e.target.value, 10) || 0); setIsSaved(false); }} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                  <input type="number" min="0" value={welfare} onChange={e => { setWelfare(parseInt(e.target.value, 10) || 0); setIsSaved(false); setHasUnsavedChanges(true); }} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
                 </div>
               </div>
             </div>

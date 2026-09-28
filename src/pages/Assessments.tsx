@@ -48,7 +48,7 @@ export default function Assessments() {
     members.forEach(m => {
       const existing = assessmentsForDate.find(a => a.memberId === m.id);
       if (existing) {
-        existingScores[m.id] = existing.scores;
+        existingScores[m.id] = JSON.parse(JSON.stringify(existing.scores));
       } else {
         existingScores[m.id] = {};
       }
@@ -58,7 +58,7 @@ export default function Assessments() {
 
   const handleScoreChange = (memberId: string, pillarIndex: number, questionIndex: number, val: number) => {
     setScores(prev => {
-      const newScores = { ...prev };
+      const newScores = JSON.parse(JSON.stringify(prev));
       if (!newScores[memberId]) newScores[memberId] = {};
       if (!newScores[memberId][pillarIndex]) newScores[memberId][pillarIndex] = {};
       
@@ -172,7 +172,16 @@ export default function Assessments() {
               type="date" 
               className="form-control"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                if (hasUnsavedChanges) {
+                  if (confirm("You have unsaved changes. Discard them and switch date?")) {
+                    setHasUnsavedChanges(false);
+                    setDate(e.target.value);
+                  }
+                } else {
+                  setDate(e.target.value);
+                }
+              }}
             />
           </div>
           <button 
@@ -206,7 +215,16 @@ export default function Assessments() {
                     backgroundColor: d === date ? 'var(--primary)' : 'transparent',
                     borderRadius: 'var(--radius-full)'
                   }}
-                  onClick={() => setDate(d)}
+                  onClick={() => {
+                    if (hasUnsavedChanges) {
+                      if (confirm("You have unsaved changes. Discard them and switch date?")) {
+                        setHasUnsavedChanges(false);
+                        setDate(d);
+                      }
+                    } else {
+                      setDate(d);
+                    }
+                  }}
                 >
                   {format(parseISO(d), 'MMM dd, yyyy')}
                 </button>

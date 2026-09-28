@@ -287,6 +287,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Roster Management
   const updateMemberStatus = async (memberId: string, newType: 'M' | 'V') => {
     try {
+      setData(prev => ({
+        ...prev,
+        roster: prev.roster.map(r => r.id === memberId ? { ...r, type: newType } : r)
+      }));
       const { error } = await supabase.from('roster').update({ type: newType }).eq('id', memberId);
       if (error) throw error;
       addNotification("Member status updated.", "success");
@@ -298,6 +302,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const updateMember = async (memberId: string, phone: string, type: 'M' | 'V') => {
     try {
+      setData(prev => ({
+        ...prev,
+        roster: prev.roster.map(r => r.id === memberId ? { ...r, phone, type } : r)
+      }));
       const { error } = await supabase.from('roster').update({ phone, type }).eq('id', memberId);
       if (error) throw error;
       addNotification("Member info updated.", "success");
@@ -309,6 +317,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const removeMember = async (memberId: string) => {
     try {
+      setData(prev => ({
+        ...prev,
+        roster: prev.roster.filter(r => r.id !== memberId)
+      }));
       const { error } = await supabase.from('roster').delete().eq('id', memberId);
       if (error) throw error;
       addNotification("Member removed.", "success");
@@ -322,6 +334,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const id = crypto.randomUUID();
       const newVisitor: Member = { id, cellId, name, phone, type: 'V' };
+      
+      setData(prev => ({ ...prev, roster: [...prev.roster, newVisitor] }));
+      
       const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'V' });
       if (error) throw error;
       addNotification("Visitor added successfully.", "success");
@@ -336,6 +351,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const id = crypto.randomUUID();
       const newMember: Member = { id, cellId, name, phone, type: 'M' };
+      
+      setData(prev => ({ ...prev, roster: [...prev.roster, newMember] }));
+      
       const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'M' });
       if (error) throw error;
       addNotification("Member added successfully.", "success");
@@ -350,6 +368,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const docId = `${meeting.cellId}_${meeting.date}`;
       const { cellId, ...rest } = meeting;
+      
+      setData(prev => {
+        const existingIdx = prev.meetings.findIndex(m => m.id === docId);
+        const newMeetings = [...prev.meetings];
+        const newMeetingWithId = { ...meeting, id: docId };
+        if (existingIdx >= 0) {
+          newMeetings[existingIdx] = newMeetingWithId;
+        } else {
+          newMeetings.push(newMeetingWithId);
+        }
+        return { ...prev, meetings: newMeetings };
+      });
+
       const { error } = await supabase.from('meetings').upsert({ ...rest, id: docId, cellid: cellId });
       if (error) throw error;
       addNotification("Attendance register saved.", "success");
@@ -362,6 +393,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveAssessment = async (assessment: Assessment) => {
     try {
       const { cellId, memberId, ...rest } = assessment;
+      
+      // Optimistic update
+      setData(prev => {
+        const existingIdx = prev.assessments.findIndex(a => a.id === assessment.id);
+        const newAssessments = [...prev.assessments];
+        if (existingIdx >= 0) {
+          newAssessments[existingIdx] = assessment;
+        } else {
+          newAssessments.push(assessment);
+        }
+        return { ...prev, assessments: newAssessments };
+      });
+
       const { error } = await supabase.from('assessments').upsert({ ...rest, cellid: cellId, memberid: memberId, id: assessment.id });
       if (error) throw error;
     } catch (error: any) {
