@@ -129,6 +129,7 @@ interface DataContextType {
   saveAssessment: (assessment: Assessment) => Promise<void>;
   createCell: (name: string, leaderName: string, password?: string, email?: string) => Promise<void>;
   deleteCell: (cellId: string) => Promise<void>;
+  updateCellName: (cellId: string, newName: string) => Promise<void>;
   updateCellPassword: (cellId: string, newPassword: string) => Promise<void>;
   updateCellEmail: (cellId: string, newEmail: string) => Promise<void>;
   notifyAdminForReset: (cellId: string) => Promise<void>;
@@ -499,6 +500,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateCellName = async (cellId: string, newName: string) => {
+    try {
+      const { error } = await supabase.from('cells').update({ name: newName }).eq('id', cellId);
+      if (error) throw error;
+      addNotification("Cell name updated.", "success");
+    } catch (error: any) {
+      addNotification("Error updating cell name: " + error.message, "error");
+      throw error;
+    }
+  };
+
   const updateCellEmail = async (cellId: string, newEmail: string) => {
     try {
       const { error } = await supabase.from('cells').update({ email: newEmail }).eq('id', cellId);
@@ -582,7 +594,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
-      createCell, deleteCell, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
+      createCell, deleteCell, updateCellName, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading, notifications, addNotification, removeNotification
     }}>
       {children}
