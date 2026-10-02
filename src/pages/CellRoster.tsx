@@ -4,14 +4,14 @@ import { Mail, Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plu
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {
-  const { data, activeCellId, updateMember, removeMember, addMember, addVisitor } = useData();
+  const { data, activeCellId, updateMember, removeMember, addPerson } = useData();
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
   const [editPhoneValue, setEditPhoneValue] = useState('');
   
   // State for adding new person
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
-  const [newType, setNewType] = useState<'M' | 'V'>('M');
+  const [newType, setNewType] = useState<'M' | 'RM' | 'V' | 'C'>('M');
   const [isAdding, setIsAdding] = useState(false);
 
   const tableRef = useRef(null);
@@ -23,11 +23,7 @@ const CellRoster = () => {
     e.preventDefault();
     if (!activeCellId) return;
     try {
-      if (newType === 'M') {
-        await addMember(activeCellId, newName, newPhone);
-      } else {
-        await addVisitor(activeCellId, newName, newPhone);
-      }
+      await addPerson(activeCellId, newName, newPhone, newType);
       setNewName('');
       setNewPhone('');
       setNewType('M');
@@ -53,7 +49,7 @@ const CellRoster = () => {
     if (!activeCell) return;
     let csvContent = "Name,Phone,Status\n";
     roster.forEach(person => {
-      const status = person.type === 'M' ? 'Member' : 'Visitor';
+      const status = person.type === 'M' ? 'Member' : person.type === 'RM' ? 'Remote Member' : person.type === 'C' ? 'Child U12' : 'Visitor';
       csvContent += `${person.name},${person.phone || 'N/A'},${status}\n`;
     });
     
@@ -108,9 +104,11 @@ const CellRoster = () => {
             </div>
             <div style={{ width: '120px' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Type</label>
-              <select value={newType} onChange={e => setNewType(e.target.value as 'M'|'V')} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <select value={newType} onChange={e => setNewType(e.target.value as 'M'|'RM'|'V'|'C')} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                 <option value="M">Member</option>
+                <option value="RM">Remote Member</option>
                 <option value="V">Visitor</option>
+                <option value="C">Child U12</option>
               </select>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -165,14 +163,17 @@ const CellRoster = () => {
                     )}
                   </td>
                   <td>
-                    <button 
-                      className={`badge ${person.type === 'M' ? 'badge-member' : 'badge-visitor'}`}
-                      style={{ border: 'none', cursor: 'pointer' }}
-                      onClick={() => updateMember(person.id, person.phone, person.type === 'M' ? 'V' : 'M')}
-                      title="Click to toggle role"
+                    <select 
+                      className={`badge badge-${person.type.toLowerCase()}`}
+                      style={{ border: '1px solid currentColor', cursor: 'pointer', outline: 'none', appearance: 'auto', paddingRight: '1.5rem' }}
+                      value={person.type}
+                      onChange={(e) => updateMember(person.id, person.phone, e.target.value as 'M'|'RM'|'V'|'C')}
                     >
-                      {person.type === 'M' ? 'Member' : 'Visitor'}
-                    </button>
+                      <option value="M">Member</option>
+                      <option value="RM">Remote Member</option>
+                      <option value="V">Visitor</option>
+                      <option value="C">Child U12</option>
+                    </select>
                   </td>
                   <td data-html2canvas-ignore>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>

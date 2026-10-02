@@ -35,7 +35,7 @@ export default function Assessments() {
   if (!activeCellId) return <div>Please select a cell first.</div>;
 
   const cell = data.cells.find(c => c.id === activeCellId);
-  const members = data.roster.filter(m => m.cellId === activeCellId && m.type === 'M');
+  const members = data.roster.filter(m => m.cellId === activeCellId && (m.type === 'M' || m.type === 'RM'));
   const pillars = data.pillarQuestions;
 
   // Initialize scores from existing data if available for this date
@@ -110,7 +110,7 @@ export default function Assessments() {
           cellId: activeCellId,
           memberId: m.id,
           date: currentDate,
-          scores: memberScores,
+          scores: { ...memberScores, _snapshot: pillars },
           timestamp: new Date().toISOString()
         });
       });
@@ -253,7 +253,7 @@ export default function Assessments() {
               
               pillars.forEach((p, pIdx) => {
                 totalPossible += p.questions.length;
-                Object.values(a.scores[pIdx] || {}).forEach(score => {
+                Object.values(a.scores[pIdx] || {}).forEach((score: any) => {
                   if (score > 0) {
                     sum += score;
                     count++;
@@ -261,8 +261,8 @@ export default function Assessments() {
                 });
               });
               
-              // Only add to averages if ALL questions were answered
-              item.Score = (count === totalPossible && count > 0) ? Number((sum / count).toFixed(1)) : null;
+              // Only add to averages if they answered at least one question
+              item.Score = count > 0 ? Number((sum / count).toFixed(1)) : null;
               item._rawDate = a.date;
               return item;
             }).filter(i => i.Score !== null).sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());

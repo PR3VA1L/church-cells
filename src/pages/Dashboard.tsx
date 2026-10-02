@@ -67,7 +67,8 @@ const Dashboard = () => {
 
   // Calculate KPIs
   const totalMembers = filteredRoster.filter(m => m.type === 'M').length;
-  const totalVisitors = filteredRoster.filter(m => m.type === 'V').length;
+  const visitorsList = filteredRoster.filter(m => m.type === 'V');
+  const totalVisitors = visitorsList.length;
   
   const totalMeetings = filteredMeetings.length;
   const totalAttendance = filteredMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
@@ -88,8 +89,9 @@ const Dashboard = () => {
 
     filteredAssessments.forEach(assessment => {
       Object.entries(assessment.scores).forEach(([pIdxStr, questions]) => {
+        if (pIdxStr === '_snapshot') return;
         const pIdx = parseInt(pIdxStr);
-        Object.entries(questions).forEach(([qIdxStr, score]) => {
+        Object.entries(questions as any).forEach(([qIdxStr, score]: [string, any]) => {
           const qIdx = parseInt(qIdxStr);
           if (score > 0 && stats[pIdx] && stats[pIdx][qIdx]) {
             stats[pIdx][qIdx].sum += score;
@@ -104,17 +106,14 @@ const Dashboard = () => {
 
     data.pillarQuestions.forEach((pillar, pIdx) => {
       let pSum = 0;
-      let hasAnswers = false;
+      let pCount = 0;
       pillar.questions.forEach((_, qIdx) => {
         pSum += stats[pIdx]?.[qIdx]?.sum || 0;
-        if ((stats[pIdx]?.[qIdx]?.count || 0) > 0) {
-          hasAnswers = true;
-        }
+        pCount += stats[pIdx]?.[qIdx]?.count || 0;
       });
       
-      if (hasAnswers) {
-        const divisor = (totalMembers > 0 ? totalMembers : 1) * pillar.questions.length;
-        const pAvg = pSum / divisor;
+      if (pCount > 0) {
+        const pAvg = pSum / pCount;
         sumOfPillarAverages += pAvg;
         answeredPillarsCount++;
       }
@@ -126,25 +125,30 @@ const Dashboard = () => {
     return { stats, overallAvg };
   }, [filteredAssessments, data.pillarQuestions, totalMembers]);
 
+  const { completedMembers, incompleteMembers } = useMemo(() => {
+    const members = filteredRoster.filter(m => m.type === 'M' || m.type === 'RM');
+    const assessedMemberIds = new Set(filteredAssessments.map(a => a.memberId));
+    
+    const completed = members.filter(m => assessedMemberIds.has(m.id));
+    const incomplete = members.filter(m => !assessedMemberIds.has(m.id));
+    return { completedMembers: completed, incompleteMembers: incomplete };
+  }, [filteredRoster, filteredAssessments]);
+
   const trendData = useMemo(() => {
     const byDate: Record<string, any> = {};
     
     filteredAssessments.forEach(a => {
       if (!byDate[a.date]) {
-        byDate[a.date] = { date: a.date, sum: [0, 0, 0, 0], hasAnswers: [false, false, false, false] };
+        byDate[a.date] = { date: a.date, sum: [0, 0, 0, 0], count: [0, 0, 0, 0] };
       }
       
       data.pillarQuestions.forEach((pillar, pIdx) => {
-        let pSum = 0;
-        let pHasAnswers = false;
-        Object.entries(a.scores[pIdx] || {}).forEach(([_, score]) => {
+        Object.entries(a.scores[pIdx] || {}).forEach(([_, score]: [string, any]) => {
           if (score > 0) {
-            pSum += score;
-            pHasAnswers = true;
+            byDate[a.date].sum[pIdx] += score;
+            byDate[a.date].count[pIdx] += 1;
           }
         });
-        byDate[a.date].sum[pIdx] += pSum;
-        if (pHasAnswers) byDate[a.date].hasAnswers[pIdx] = true;
       });
     });
 
@@ -155,9 +159,8 @@ const Dashboard = () => {
       let answeredCount = 0;
       
       data.pillarQuestions.forEach((p, pIdx) => {
-        if (d.hasAnswers[pIdx]) {
-          const divisor = (totalMembers > 0 ? totalMembers : 1) * p.questions.length;
-          const pAvg = d.sum[pIdx] / divisor;
+        if (d.count[pIdx] > 0) {
+          const pAvg = d.sum[pIdx] / d.count[pIdx];
           item[p.pillar] = Number(pAvg.toFixed(1));
           sumOfAverages += pAvg;
           answeredCount++;
@@ -306,7 +309,22 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <StatCard icon={<Activity />} title="Avg Weekly Attendance" value={avgAttendance} color="var(--primary)" />
         <StatCard icon={<Users />} title={!targetCellId ? "Total Active Members" : "Active Members"} value={totalMembers} color="var(--secondary)" />
-        <StatCard icon={<UserPlus />} title={!targetCellId ? "Total New Visitors" : "New Visitors"} value={totalVisitors} color="var(--warning)" />
+        <StatCard 
+          icon={<UserPlus />} 
+          title={!targetCellId ? "Total New Visitors" : "New Visitors"} 
+          value={totalVisitors} 
+          color="var(--warning)" 
+          tooltip={visitorsList.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-main)' }}>Recent Visitors</h4>
+              {visitorsList.map(v => (
+                <div key={v.id} style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  • {v.name} {v.phone && `(${v.phone})`}
+                </div>
+              ))}
+            </div>
+          ) : undefined}
+        />
         <StatCard icon={<LatinCross size={24} />} title={!targetCellId ? "Total Salvations" : "Salvations"} value={totalSalvations} color="#3b82f6" />
         <StatCard icon={<Target />} title="Overall Pillar Average" value={`${assessmentStats.overallAvg} / 5`} color="#10b981" />
       </div>
@@ -337,6 +355,36 @@ const Dashboard = () => {
                 <Line type="monotone" dataKey="SERVICE" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 4 }} opacity={0.6} />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {(isAdmin || targetCellId) && (
+        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+          <h3 style={{ margin: 0, color: 'var(--primary)', marginBottom: '1.5rem' }}>Assessment Completion (Selected Period)</h3>
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '250px' }}>
+              <h4 style={{ color: 'var(--success)', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                Completed ({completedMembers.length})
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {completedMembers.map(m => (
+                  <li key={m.id} style={{ fontSize: '0.875rem', padding: '0.25rem 0' }}>✓ {m.name}</li>
+                ))}
+                {completedMembers.length === 0 && <li className="text-muted" style={{ fontSize: '0.875rem' }}>None</li>}
+              </ul>
+            </div>
+            <div style={{ flex: 1, minWidth: '250px' }}>
+              <h4 style={{ color: 'var(--danger)', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                Not Completed ({incompleteMembers.length})
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {incompleteMembers.map(m => (
+                  <li key={m.id} style={{ fontSize: '0.875rem', padding: '0.25rem 0' }}>✗ {m.name}</li>
+                ))}
+                {incompleteMembers.length === 0 && <li className="text-muted" style={{ fontSize: '0.875rem' }}>None</li>}
+              </ul>
+            </div>
           </div>
         </div>
       )}
@@ -459,22 +507,50 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ icon, title, value, color }: { icon: React.ReactNode, title: string, value: string | number, color: string }) => (
-  <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-    <div style={{ 
-      backgroundColor: `${color}15`, 
-      color: color, 
-      width: '3rem', height: '3rem', 
-      borderRadius: 'var(--radius-lg)', 
-      display: 'flex', alignItems: 'center', justifyContent: 'center' 
-    }}>
-      {icon}
+const StatCard = ({ icon, title, value, color, tooltip }: { icon: React.ReactNode, title: string, value: string | number, color: string, tooltip?: React.ReactNode }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  return (
+    <div 
+      className="glass-panel" 
+      style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', overflow: 'visible' }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div style={{ 
+        backgroundColor: `${color}15`, 
+        color: color, 
+        width: '3rem', height: '3rem', 
+        borderRadius: 'var(--radius-lg)', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center' 
+      }}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-muted" style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>{title}</p>
+        <h2 style={{ fontSize: '1.75rem', margin: 0, color: 'var(--text-main)' }}>{value}</h2>
+      </div>
+      {tooltip && showTooltip && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginTop: '0.5rem',
+          padding: '1rem',
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+          zIndex: 100,
+          minWidth: '200px',
+          maxHeight: '300px',
+          overflowY: 'auto'
+        }}>
+          {tooltip}
+        </div>
+      )}
     </div>
-    <div>
-      <p className="text-muted" style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>{title}</p>
-      <h2 style={{ fontSize: '1.75rem', margin: 0, color: 'var(--text-main)' }}>{value}</h2>
-    </div>
-  </div>
-);
+  );
+};
 
 export default Dashboard;

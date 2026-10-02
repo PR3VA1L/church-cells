@@ -23,7 +23,7 @@ export interface Member {
   cellId: string;
   name: string;
   phone: string;
-  type: 'M' | 'V';
+  type: 'M' | 'RM' | 'V' | 'C';
 }
 
 export interface Meeting {
@@ -85,7 +85,7 @@ export interface Assessment {
   cellId: string;
   memberId: string;
   date: string;
-  scores: Record<string, Record<string, number>>; // { [pillarIndex]: { [questionIndex]: score } }
+  scores: any;
   timestamp: string;
 }
 
@@ -97,24 +97,34 @@ export interface AppData {
   assessments: Assessment[];
 }
 
+export const normalizePhone = (phone: string | undefined | null) => {
+  if (!phone) return phone;
+  let p = phone.replace(/\D/g, ''); // strip non-digits
+  if (p.startsWith('27')) p = p.substring(2);
+  if (p.startsWith('0')) p = p.substring(1);
+  return p;
+};
+
 export interface CurrentUser {
-  role: 'admin' | 'leader';
+  role: 'admin' | 'leader' | 'member';
   cellId?: string | null;
+  memberId?: string;
 }
 
 interface DataContextType {
   data: AppData;
   setData: React.Dispatch<React.SetStateAction<AppData>>;
   currentUser: CurrentUser | null;
-  login: (role: 'admin' | 'leader', password: string, cellId?: string | null) => Promise<boolean>;
+  login: (role: 'admin' | 'leader' | 'member', authValue: string, cellId?: string | null) => Promise<boolean>;
   logout: () => void;
   activeCellId: string | null;
   setActiveCellId: React.Dispatch<React.SetStateAction<string | null>>;
-  updateMemberStatus: (memberId: string, newType: 'M' | 'V') => Promise<void>;
-  updateMember: (memberId: string, phone: string, type: 'M' | 'V') => Promise<void>;
+  updateMemberStatus: (memberId: string, newType: 'M' | 'RM' | 'V' | 'C') => Promise<void>;
+  updateMember: (memberId: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
   addVisitor: (cellId: string, name: string, phone: string) => Promise<Member>;
   addMember: (cellId: string, name: string, phone: string) => Promise<Member>;
+  addPerson: (cellId: string, name: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => Promise<Member>;
   saveMeeting: (meeting: Meeting) => Promise<void>;
   saveAssessment: (assessment: Assessment) => Promise<void>;
   createCell: (name: string, leaderName: string, password?: string, email?: string) => Promise<void>;
@@ -257,19 +267,28 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [currentUser]);
 
-  const login = async (role: 'admin' | 'leader', password: string, cellId: string | null = null) => {
+  const login = async (role: 'admin' | 'leader' | 'member', authValue: string, cellId: string | null = null) => {
     try {
       if (role === 'admin') {
         const { data: adminSettings, error } = await supabase.from('settings').select('adminpassword').eq('id', 'admin').single();
-        if (!error && adminSettings && adminSettings.adminpassword === password) {
+        if (!error && adminSettings && adminSettings.adminpassword === authValue) {
           setCurrentUser({ role: 'admin' });
           return true;
         }
       } else if (role === 'leader' && cellId) {
         const { data: cell, error } = await supabase.from('cells').select('password').eq('id', cellId).single();
-        if (!error && cell && cell.password === password) {
+        if (!error && cell && cell.password === authValue) {
           setCurrentUser({ role: 'leader', cellId });
           return true;
+        }
+      } else if (role === 'member') {
+        const { data: members, error } = await supabase.from('roster').select('id, cellid, phone');
+        if (!error && members) {
+          const match = members.find(m => m.phone && normalizePhone(m.phone) === normalizePhone(authValue));
+          if (match) {
+            setCurrentUser({ role: 'member', cellId: match.cellid, memberId: match.id });
+            return true;
+          }
         }
       }
       return false;
@@ -285,7 +304,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Roster Management
-  const updateMemberStatus = async (memberId: string, newType: 'M' | 'V') => {
+  const updateMemberStatus = async (memberId: string, newType: 'M' | 'RM' | 'V' | 'C') => {
     try {
       setData(prev => ({
         ...prev,
@@ -300,13 +319,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateMember = async (memberId: string, phone: string, type: 'M' | 'V') => {
+  const updateMember = async (memberId: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => {
     try {
+      const cleanPhone = normalizePhone(phone) || '';
       setData(prev => ({
         ...prev,
-        roster: prev.roster.map(r => r.id === memberId ? { ...r, phone, type } : r)
+        roster: prev.roster.map(r => r.id === memberId ? { ...r, phone: cleanPhone, type } : r)
       }));
-      const { error } = await supabase.from('roster').update({ phone, type }).eq('id', memberId);
+      const { error } = await supabase.from('roster').update({ phone: cleanPhone, type }).eq('id', memberId);
       if (error) throw error;
       addNotification("Member info updated.", "success");
     } catch (error: any) {
@@ -360,6 +380,24 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       return newMember;
     } catch (error: any) {
       addNotification("Error adding member: " + error.message, "error");
+      throw error;
+    }
+  };
+
+  const addPerson = async (cellId: string, name: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => {
+    try {
+      const id = crypto.randomUUID();
+      const cleanPhone = normalizePhone(phone) || '';
+      const newPerson: Member = { id, cellId, name, phone: cleanPhone, type };
+      
+      setData(prev => ({ ...prev, roster: [...prev.roster, newPerson] }));
+      
+      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone: cleanPhone, type });
+      if (error) throw error;
+      addNotification("Person added successfully.", "success");
+      return newPerson;
+    } catch (error: any) {
+      addNotification("Error adding person: " + error.message, "error");
       throw error;
     }
   };
@@ -543,7 +581,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       data, setData, 
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
-      updateMemberStatus, updateMember, removeMember, addVisitor, addMember, saveMeeting, saveAssessment,
+      updateMemberStatus, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading, notifications, addNotification, removeNotification
     }}>

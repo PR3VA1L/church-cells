@@ -5,7 +5,7 @@ import LatinCross from '../components/LatinCross';
 
 const Login = () => {
   const { data, login, updateCellPassword, updateCellEmail, notifyAdminForReset } = useData();
-  const [role, setRole] = useState<'leader' | 'admin'>('leader');
+  const [role, setRole] = useState<'member' | 'leader' | 'admin'>('member');
   const [cellId, setCellId] = useState(data.cells[0]?.id || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -268,7 +268,12 @@ const Login = () => {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Account Type</label>
-              <select value={role} onChange={(e) => setRole(e.target.value as 'leader' | 'admin')}>
+              <select value={role} onChange={(e) => {
+                setRole(e.target.value as 'member' | 'leader' | 'admin');
+                setPassword('');
+                setError('');
+              }}>
+                <option value="member">Cell Member</option>
                 <option value="leader">Cell Leader</option>
                 <option value="admin">System Administrator</option>
               </select>
@@ -285,16 +290,29 @@ const Login = () => {
               </div>
             )}
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="Enter password"
-                required 
-              />
-            </div>
+            {role === 'member' ? (
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number</label>
+                <input 
+                  type="tel" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="e.g. 0712345678"
+                  required 
+                />
+              </div>
+            ) : (
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="Enter password"
+                  required 
+                />
+              </div>
+            )}
 
             {error && <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'center' }}>{error}</div>}
 

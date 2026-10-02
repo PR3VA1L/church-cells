@@ -168,8 +168,8 @@ const AttendanceRegister = () => {
                         {person.name}
                       </td>
                       <td>
-                        <span className={`badge ${person.type === 'M' ? 'badge-member' : 'badge-visitor'}`}>
-                          {person.type === 'M' ? 'Member' : 'Visitor'}
+                        <span className={`badge badge-${person.type.toLowerCase()}`}>
+                          {person.type === 'M' ? 'Member' : person.type === 'RM' ? 'Remote Member' : person.type === 'C' ? 'Child U12' : 'Visitor'}
                         </span>
                       </td>
                       <td className="text-muted">{person.phone || '-'}</td>
@@ -289,7 +289,7 @@ const AttendanceRegister = () => {
                             <span style={{ fontWeight: '500' }}>{person?.name || 'Unknown Member'}</span>
                             {person && (
                               <span style={{ fontSize: '0.75rem', marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                                {person.type === 'M' ? 'Member' : 'Visitor'}
+                                {person.type === 'M' ? 'Member' : person.type === 'RM' ? 'Remote Member' : person.type === 'C' ? 'Child U12' : 'Visitor'}
                               </span>
                             )}
                           </div>
