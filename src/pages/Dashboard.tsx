@@ -70,9 +70,17 @@ const Dashboard = () => {
   const visitorsList = filteredRoster.filter(m => m.type === 'V');
   const totalVisitors = visitorsList.length;
   
+  const getMeetingAttendance = (m: any): number => {
+    if (Array.isArray(m?.attendees)) return m.attendees.length;
+    if (m?.attendees && typeof m.attendees === 'object') {
+      return Object.values(m.attendees).filter(Boolean).length;
+    }
+    return 0;
+  };
+
   const totalMeetings = filteredMeetings.length;
-  const totalAttendance = filteredMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
-  const avgAttendance = totalMeetings > 0 ? (totalAttendance / totalMeetings).toFixed(1) : '0';
+  const totalAttendance = filteredMeetings.reduce((sum, m) => sum + getMeetingAttendance(m), 0);
+  const avgAttendance = totalMeetings > 0 && !isNaN(totalAttendance) ? (totalAttendance / totalMeetings).toFixed(1) : '0';
   
   const totalSalvations = filteredMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
 
@@ -214,8 +222,8 @@ const Dashboard = () => {
     let csvContent = "Cell Name,Cell Leader,Meetings Held,Avg Attendance,Total Salvations,New Visitors\n";
     data.cells.forEach(cell => {
       const cellMeetings = filteredMeetings.filter(m => m.cellId === cell.id);
-      const cellAttendances = cellMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
-      const cellAvg = cellMeetings.length > 0 ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
+      const cellAttendances = cellMeetings.reduce((sum, m) => sum + getMeetingAttendance(m), 0);
+      const cellAvg = cellMeetings.length > 0 && !isNaN(cellAttendances) ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
       const cellSalvations = cellMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
       const cellVisitors = filteredRoster.filter(m => m.cellId === cell.id && m.type === 'V').length;
       csvContent += `${cell.name},${cell.leaderName},${cellMeetings.length},${cellAvg},${cellSalvations},${cellVisitors}\n`;
@@ -263,8 +271,18 @@ const Dashboard = () => {
             </form>
             <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Change Password</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} placeholder="Enter new password" />
+                <label htmlFor="dashboard-new-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Change Password</label>
+                <input 
+                  id="dashboard-new-password"
+                  name="password"
+                  type="password" 
+                  value={newPassword} 
+                  onChange={e => setNewPassword(e.target.value)} 
+                  autoComplete="new-password"
+                  required 
+                  minLength={4} 
+                  placeholder="Enter new password" 
+                />
               </div>
               <button type="submit" className="btn btn-primary">Update Password</button>
             </form>
@@ -482,8 +500,8 @@ const Dashboard = () => {
               <tbody>
                 {data.cells.map(cell => {
                   const cellMeetings = filteredMeetings.filter(m => m.cellId === cell.id);
-                  const cellAttendances = cellMeetings.reduce((sum, m) => sum + (m.attendees || []).length, 0);
-                  const cellAvg = cellMeetings.length > 0 ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
+                  const cellAttendances = cellMeetings.reduce((sum, m) => sum + getMeetingAttendance(m), 0);
+                  const cellAvg = cellMeetings.length > 0 && !isNaN(cellAttendances) ? (cellAttendances / cellMeetings.length).toFixed(1) : '0';
                   const cellSalvations = cellMeetings.reduce((sum, m) => sum + Number(m.salvations || 0), 0);
                   const cellVisitors = filteredRoster.filter(m => m.cellId === cell.id && m.type === 'V').length;
                   

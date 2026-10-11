@@ -227,7 +227,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         setData({
           cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
           roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
-          meetings: meetingsRes.data?.map((m: any) => ({ ...m, cellId: m.cellid })) || [],
+          meetings: (meetingsRes.data?.map((m: any) => {
+            let attendees: string[] = [];
+            if (Array.isArray(m.attendees)) {
+              attendees = m.attendees;
+            } else if (m.attendees && typeof m.attendees === 'object') {
+              attendees = Object.entries(m.attendees)
+                .filter(([_, present]) => Boolean(present))
+                .map(([id]) => id);
+            }
+            return { ...m, cellId: m.cellid, attendees };
+          }) || []),
           assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
           pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS
         });

@@ -186,8 +186,16 @@ const AdminPanel = () => {
           <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Change Admin Password</h3>
           <form onSubmit={handleChangeAdminPassword} style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>New Admin Password</label>
-              <input type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} required />
+              <label htmlFor="admin-new-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>New Admin Password</label>
+              <input 
+                id="admin-new-password"
+                name="password"
+                type="password" 
+                value={newAdminPassword} 
+                onChange={e => setNewAdminPassword(e.target.value)} 
+                autoComplete="new-password"
+                required 
+              />
             </div>
             <button type="submit" className="btn btn-primary">Change Password</button>
           </form>

@@ -204,8 +204,18 @@ const Login = () => {
 
             {viewMode === 'setup' && (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Create a Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Create a strong password" required minLength={4} />
+                <label htmlFor="setup-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Create a Password</label>
+                <input 
+                  id="setup-password"
+                  name="password"
+                  type="password" 
+                  autoComplete="new-password"
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  placeholder="Create a strong password" 
+                  required 
+                  minLength={4} 
+                />
               </div>
             )}
 
@@ -228,8 +238,18 @@ const Login = () => {
 
             {viewMode === 'reset' && (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" required minLength={4} />
+                <label htmlFor="reset-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>New Password</label>
+                <input 
+                  id="reset-password"
+                  name="password"
+                  type="password" 
+                  autoComplete="new-password"
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  placeholder="Enter new password" 
+                  required 
+                  minLength={4} 
+                />
               </div>
             )}
 
@@ -292,23 +312,38 @@ const Login = () => {
 
             {role === 'member' ? (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number</label>
+                <label htmlFor="login-phone" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number</label>
                 <input 
+                  id="login-phone"
+                  name="tel"
                   type="tel" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   placeholder="e.g. 0712345678"
+                  autoComplete="tel"
                   required 
                 />
               </div>
             ) : (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
+                {/* Hidden username to satisfy browser credential autofill heuristics */}
                 <input 
+                  type="text" 
+                  name="username" 
+                  value={role === 'admin' ? 'admin' : (data.cells.find(c => c.id === cellId)?.name || 'leader')} 
+                  autoComplete="username" 
+                  style={{ display: 'none' }} 
+                  readOnly 
+                />
+                <label htmlFor="login-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
+                <input 
+                  id="login-password"
+                  name="password"
                   type="password" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
-                  placeholder="Enter password"
+                  placeholder="Enter password" 
+                  autoComplete="current-password"
                   required 
                 />
               </div>
