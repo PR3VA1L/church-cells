@@ -7,6 +7,7 @@ import AttendanceRegister from './pages/AttendanceRegister';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Assessments from './pages/Assessments';
+import MemberPortal from './pages/MemberPortal';
 import { Menu, WifiOff, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import LatinCross from './components/LatinCross';
 import './index.css';
@@ -60,6 +61,38 @@ function AppContent() {
 
   if (!currentUser) {
     return <Login />;
+  }
+
+  if (currentUser.role === 'member') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
+        {isOffline && (
+          <div style={{ 
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+            backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+            zIndex: 99999, display: 'flex', flexDirection: 'column', 
+            alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' 
+          }}>
+            <WifiOff size={64} color="var(--danger)" style={{ marginBottom: '1rem' }} />
+            <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Connection Lost</h2>
+            <p className="text-muted" style={{ textAlign: 'center', maxWidth: '400px' }}>
+              It looks like you're offline. Please check your internet connection. 
+              The app will automatically resume once you're back online.
+            </p>
+          </div>
+        )}
+        <div style={{
+          position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999,
+          display: 'flex', flexDirection: 'column', pointerEvents: 'none',
+          maxWidth: '350px'
+        }}>
+          {notifications.map(n => (
+            <Toast key={n.id} message={n.message} type={n.type} onClose={() => removeNotification(n.id)} />
+          ))}
+        </div>
+        <MemberPortal />
+      </div>
+    );
   }
 
   const handleTabChange = (tab: string) => {

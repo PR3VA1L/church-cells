@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { data, createCell, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword, clearAdminResetNotification } = useData();
+  const { data, createCell, updateCellName, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword, clearAdminResetNotification } = useData();
   
   // State for new cell
   const [newCellName, setNewCellName] = useState('');
@@ -67,6 +67,13 @@ const AdminPanel = () => {
     const newPass = prompt('Enter new password for this cell:', currentPassword);
     if (newPass && newPass.trim() !== '') {
       updateCellPassword(cellId, newPass);
+    }
+  };
+
+  const handleChangeName = (cellId: string, currentName: string) => {
+    const newName = prompt('Enter new name for this cell:', currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+      updateCellName(cellId, newName);
     }
   };
 
@@ -179,8 +186,16 @@ const AdminPanel = () => {
           <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Change Admin Password</h3>
           <form onSubmit={handleChangeAdminPassword} style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>New Admin Password</label>
-              <input type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} required />
+              <label htmlFor="admin-new-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>New Admin Password</label>
+              <input 
+                id="admin-new-password"
+                name="password"
+                type="password" 
+                value={newAdminPassword} 
+                onChange={e => setNewAdminPassword(e.target.value)} 
+                autoComplete="new-password"
+                required 
+              />
             </div>
             <button type="submit" className="btn btn-primary">Change Password</button>
           </form>
@@ -220,6 +235,13 @@ const AdminPanel = () => {
                     </button>
                   </td>
                   <td>
+                    <button 
+                      className="btn btn-outline" 
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', marginRight: '0.5rem' }}
+                      onClick={() => handleChangeName(cell.id, cell.name)}
+                    >
+                      Rename Cell
+                    </button>
                     <button 
                       className="btn btn-outline" 
                       style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', marginRight: '0.5rem' }}

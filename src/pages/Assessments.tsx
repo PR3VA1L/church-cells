@@ -32,15 +32,16 @@ export default function Assessments() {
     dateRef.current = date;
   }, [scores, date]);
 
-  if (!activeCellId) return <div>Please select a cell first.</div>;
-
   const cell = data.cells.find(c => c.id === activeCellId);
-  const members = data.roster.filter(m => m.cellId === activeCellId && m.type === 'M');
+  const members = React.useMemo(() => {
+    if (!activeCellId) return [];
+    return data.roster.filter(m => m.cellId === activeCellId && (m.type === 'M' || m.type === 'RM'));
+  }, [data.roster, activeCellId]);
   const pillars = data.pillarQuestions;
 
   // Initialize scores from existing data if available for this date
   React.useEffect(() => {
-    if (hasUnsavedChanges) return; // Do not overwrite if user has unsaved changes
+    if (!activeCellId || hasUnsavedChanges) return; // Do not overwrite if user has unsaved changes
 
     const existingScores: Record<string, any> = {};
     const assessmentsForDate = data.assessments.filter(a => a.cellId === activeCellId && a.date === date);
@@ -54,7 +55,7 @@ export default function Assessments() {
       }
     });
     setScores(existingScores);
-  }, [activeCellId, date, data.assessments, data.roster, hasUnsavedChanges]); // Re-run when date changes
+  }, [activeCellId, date, data.assessments, members, hasUnsavedChanges]); // Re-run when date changes
 
   const handleScoreChange = (memberId: string, pillarIndex: number, questionIndex: number, val: number) => {
     setScores(prev => {
@@ -69,6 +70,7 @@ export default function Assessments() {
   };
 
   const handleSave = async (autoSaveScores?: any, autoSaveDate?: any) => {
+    if (!activeCellId) return;
     // Ignore React synthetic events passed from onClick
     const isEvent = autoSaveScores && typeof autoSaveScores === 'object' && 'nativeEvent' in autoSaveScores;
     const currentScores = (!isEvent && autoSaveScores) ? autoSaveScores : scores;
@@ -110,7 +112,7 @@ export default function Assessments() {
           cellId: activeCellId,
           memberId: m.id,
           date: currentDate,
-          scores: memberScores,
+          scores: { ...memberScores, _snapshot: pillars },
           timestamp: new Date().toISOString()
         });
       });
@@ -126,6 +128,7 @@ export default function Assessments() {
   };
 
   React.useEffect(() => {
+    if (!activeCellId) return;
     const interval = setInterval(() => {
       if (hasUnsavedChanges) {
         handleSave(scoresRef.current, dateRef.current);
@@ -154,6 +157,8 @@ export default function Assessments() {
     
     return { answered: answeredQuestions, total: totalQuestions };
   };
+
+  if (!activeCellId) return <div style={{ padding: '2rem', textAlign: 'center' }}>Please select a cell first.</div>;
 
   const pastDates = Array.from(new Set(data.assessments.filter(a => a.cellId === activeCellId).map(a => a.date))).sort().reverse();
 
@@ -253,7 +258,7 @@ export default function Assessments() {
               
               pillars.forEach((p, pIdx) => {
                 totalPossible += p.questions.length;
-                Object.values(a.scores[pIdx] || {}).forEach(score => {
+                Object.values(a.scores[pIdx] || {}).forEach((score: any) => {
                   if (score > 0) {
                     sum += score;
                     count++;
@@ -261,8 +266,8 @@ export default function Assessments() {
                 });
               });
               
-              // Only add to averages if ALL questions were answered
-              item.Score = (count === totalPossible && count > 0) ? Number((sum / count).toFixed(1)) : null;
+              // Only add to averages if they answered at least one question
+              item.Score = count > 0 ? Number((sum / count).toFixed(1)) : null;
               item._rawDate = a.date;
               return item;
             }).filter(i => i.Score !== null).sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());

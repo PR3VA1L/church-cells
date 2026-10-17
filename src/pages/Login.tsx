@@ -5,7 +5,7 @@ import LatinCross from '../components/LatinCross';
 
 const Login = () => {
   const { data, login, updateCellPassword, updateCellEmail, notifyAdminForReset } = useData();
-  const [role, setRole] = useState<'leader' | 'admin'>('leader');
+  const [role, setRole] = useState<'member' | 'leader' | 'admin'>('member');
   const [cellId, setCellId] = useState(data.cells[0]?.id || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -57,9 +57,13 @@ const Login = () => {
     try {
       const successLogin = await login(role, password, role === 'leader' ? cellId : null);
       if (!successLogin) {
-        setError('Invalid password. Please try again.');
+        if (role === 'member') {
+          setError('Phone number not found in cell roster. Please check your number or contact your leader.');
+        } else {
+          setError('Invalid password. Please try again.');
+        }
       }
-    } catch (err) {
+    } catch (_err) {
       setError('A network error occurred. Please check your connection.');
     } finally {
       setIsLoading(false);
@@ -204,8 +208,18 @@ const Login = () => {
 
             {viewMode === 'setup' && (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Create a Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Create a strong password" required minLength={4} />
+                <label htmlFor="setup-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Create a Password</label>
+                <input 
+                  id="setup-password"
+                  name="password"
+                  type="password" 
+                  autoComplete="new-password"
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  placeholder="Create a strong password" 
+                  required 
+                  minLength={4} 
+                />
               </div>
             )}
 
@@ -228,8 +242,18 @@ const Login = () => {
 
             {viewMode === 'reset' && (
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" required minLength={4} />
+                <label htmlFor="reset-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>New Password</label>
+                <input 
+                  id="reset-password"
+                  name="password"
+                  type="password" 
+                  autoComplete="new-password"
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  placeholder="Enter new password" 
+                  required 
+                  minLength={4} 
+                />
               </div>
             )}
 
@@ -268,7 +292,12 @@ const Login = () => {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Account Type</label>
-              <select value={role} onChange={(e) => setRole(e.target.value as 'leader' | 'admin')}>
+              <select value={role} onChange={(e) => {
+                setRole(e.target.value as 'member' | 'leader' | 'admin');
+                setPassword('');
+                setError('');
+              }}>
+                <option value="member">Cell Member / Visitor</option>
                 <option value="leader">Cell Leader</option>
                 <option value="admin">System Administrator</option>
               </select>
@@ -285,16 +314,44 @@ const Login = () => {
               </div>
             )}
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="Enter password"
-                required 
-              />
-            </div>
+            {role === 'member' ? (
+              <div>
+                <label htmlFor="login-phone" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number</label>
+                <input 
+                  id="login-phone"
+                  name="tel"
+                  type="tel" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="e.g. 0712345678"
+                  autoComplete="tel"
+                  required 
+                />
+              </div>
+            ) : (
+              <div>
+                {/* Hidden username to satisfy browser credential autofill heuristics */}
+                <input 
+                  type="text" 
+                  name="username" 
+                  value={role === 'admin' ? 'admin' : (data.cells.find(c => c.id === cellId)?.name || 'leader')} 
+                  autoComplete="username" 
+                  style={{ display: 'none' }} 
+                  readOnly 
+                />
+                <label htmlFor="login-password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Password</label>
+                <input 
+                  id="login-password"
+                  name="password"
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="Enter password" 
+                  autoComplete="current-password"
+                  required 
+                />
+              </div>
+            )}
 
             {error && <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'center' }}>{error}</div>}
 

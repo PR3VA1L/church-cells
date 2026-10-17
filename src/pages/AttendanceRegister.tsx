@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
-import { UserPlus, Save, CheckCircle2, Circle, Plus, Search, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight } from 'lucide-react';
 
 const AttendanceRegister = () => {
-  const { data, activeCellId, saveMeeting, addVisitor, currentUser } = useData();
+  const { data, activeCellId, saveMeeting, addVisitor } = useData();
   const activeCell = data.cells.find(c => c.id === activeCellId);
   const roster = data.roster.filter(r => r.cellId === activeCellId);
-  
-  const isAdmin = currentUser?.role === 'admin';
 
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
@@ -168,8 +166,8 @@ const AttendanceRegister = () => {
                         {person.name}
                       </td>
                       <td>
-                        <span className={`badge ${person.type === 'M' ? 'badge-member' : 'badge-visitor'}`}>
-                          {person.type === 'M' ? 'Member' : 'Visitor'}
+                        <span className={`badge badge-${person.type.toLowerCase()}`}>
+                          {person.type === 'M' ? 'Member' : person.type === 'RM' ? 'Remote Member' : person.type === 'C' ? 'Child U12' : 'Visitor'}
                         </span>
                       </td>
                       <td className="text-muted">{person.phone || '-'}</td>
@@ -289,7 +287,7 @@ const AttendanceRegister = () => {
                             <span style={{ fontWeight: '500' }}>{person?.name || 'Unknown Member'}</span>
                             {person && (
                               <span style={{ fontSize: '0.75rem', marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                                {person.type === 'M' ? 'Member' : 'Visitor'}
+                                {person.type === 'M' ? 'Member' : person.type === 'RM' ? 'Remote Member' : person.type === 'C' ? 'Child U12' : 'Visitor'}
                               </span>
                             )}
                           </div>
