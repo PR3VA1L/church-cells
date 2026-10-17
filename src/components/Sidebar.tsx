@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { LayoutDashboard, Users, UserCheck, Settings, LogOut, Shield, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, LogOut, Shield, FileText } from 'lucide-react';
 import LatinCross from './LatinCross';
 
 const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) => {

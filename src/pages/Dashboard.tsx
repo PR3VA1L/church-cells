@@ -7,7 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import LatinCross from '../components/LatinCross';
 
 const Dashboard = () => {
-  const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail, addNotification } = useData();
+  const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail } = useData();
   const dashboardRef = useRef(null);
 
   const isAdmin = currentUser?.role === 'admin';
@@ -131,7 +131,7 @@ const Dashboard = () => {
     const overallAvg = overallAvgNum.toFixed(1);
     
     return { stats, overallAvg };
-  }, [filteredAssessments, data.pillarQuestions, totalMembers]);
+  }, [filteredAssessments, data.pillarQuestions]);
 
   const { completedMembers, incompleteMembers } = useMemo(() => {
     const members = filteredRoster.filter(m => m.type === 'M' || m.type === 'RM');
@@ -183,7 +183,7 @@ const Dashboard = () => {
     });
 
     return formatted.sort((a, b) => new Date(a._rawDate).getTime() - new Date(b._rawDate).getTime());
-  }, [filteredAssessments, data.pillarQuestions, totalMembers]);
+  }, [filteredAssessments, data.pillarQuestions]);
 
 
   const exportToPNG = async () => {
@@ -202,7 +202,7 @@ const Dashboard = () => {
     if (!targetCellId) return;
     try {
       await updateCellEmail(targetCellId, newEmail);
-    } catch (err: any) {
+    } catch (_err: any) {
       // DataContext already handles notification
     }
   };
@@ -213,7 +213,7 @@ const Dashboard = () => {
     try {
       await updateCellPassword(targetCellId, newPassword);
       setNewPassword('');
-    } catch (err: any) {
+    } catch (_err: any) {
       // DataContext already handles notification
     }
   };
@@ -419,16 +419,13 @@ const Dashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
             {data.pillarQuestions.map((pillar, pIdx) => {
               let pSum = 0;
-              let hasAnswers = false;
+              let pCount = 0;
               pillar.questions.forEach((_, qIdx) => {
                 pSum += assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
-                if ((assessmentStats.stats[pIdx]?.[qIdx]?.count || 0) > 0) {
-                  hasAnswers = true;
-                }
+                pCount += assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
               });
               
-              const divisor = (totalMembers > 0 ? totalMembers : 1) * pillar.questions.length;
-              const pAvgNum = hasAnswers ? (pSum / divisor) : 0;
+              const pAvgNum = pCount > 0 ? (pSum / pCount) : 0;
               const pAvg = pAvgNum.toFixed(1);
               
               // Determine overall color for the pillar
@@ -447,7 +444,7 @@ const Dashboard = () => {
                     {pillar.questions.map((question, qIdx) => {
                       const qSum = assessmentStats.stats[pIdx]?.[qIdx]?.sum || 0;
                       const qCount = assessmentStats.stats[pIdx]?.[qIdx]?.count || 0;
-                      const qAvgNum = qCount > 0 ? (qSum / (totalMembers > 0 ? totalMembers : 1)) : 0;
+                      const qAvgNum = qCount > 0 ? (qSum / qCount) : 0;
                       const qAvg = qAvgNum.toFixed(1);
                       const widthPct = (qAvgNum / 5) * 100;
                       

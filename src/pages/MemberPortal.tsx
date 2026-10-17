@@ -85,7 +85,6 @@ const MemberPortal = () => {
   const handleSave = async () => {
     if (!currentUser?.cellId || !currentUser?.memberId) return;
 
-    let hasValidationError = false;
     for (let pIdx = 0; pIdx < pillars.length; pIdx++) {
       const pillarScores = (scores as any)[pIdx] || {};
       let answeredCount = 0;
@@ -94,7 +93,6 @@ const MemberPortal = () => {
       });
       
       if (answeredCount > 0 && answeredCount < pillars[pIdx].questions.length) {
-        hasValidationError = true;
         alert(`You must answer all questions for a pillar in order to save. Please complete the ${pillars[pIdx].pillar} pillar.`);
         return;
       }

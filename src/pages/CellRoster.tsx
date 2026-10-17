@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Mail, Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
+import { Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {

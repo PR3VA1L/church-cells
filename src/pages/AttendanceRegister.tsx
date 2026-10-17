@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
-import { UserPlus, Save, CheckCircle2, Circle, Plus, Search, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight } from 'lucide-react';
 
 const AttendanceRegister = () => {
-  const { data, activeCellId, saveMeeting, addVisitor, currentUser } = useData();
+  const { data, activeCellId, saveMeeting, addVisitor } = useData();
   const activeCell = data.cells.find(c => c.id === activeCellId);
   const roster = data.roster.filter(r => r.cellId === activeCellId);
-  
-  const isAdmin = currentUser?.role === 'admin';
 
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());

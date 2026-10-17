@@ -57,9 +57,13 @@ const Login = () => {
     try {
       const successLogin = await login(role, password, role === 'leader' ? cellId : null);
       if (!successLogin) {
-        setError('Invalid password. Please try again.');
+        if (role === 'member') {
+          setError('Phone number not found in cell roster. Please check your number or contact your leader.');
+        } else {
+          setError('Invalid password. Please try again.');
+        }
       }
-    } catch (err) {
+    } catch (_err) {
       setError('A network error occurred. Please check your connection.');
     } finally {
       setIsLoading(false);
@@ -293,7 +297,7 @@ const Login = () => {
                 setPassword('');
                 setError('');
               }}>
-                <option value="member">Cell Member</option>
+                <option value="member">Cell Member / Visitor</option>
                 <option value="leader">Cell Leader</option>
                 <option value="admin">System Administrator</option>
               </select>

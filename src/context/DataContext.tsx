@@ -481,6 +481,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         type: 'M'
       });
       if (rosterError) throw rosterError;
+      
+      setData(prev => ({
+        ...prev,
+        cells: [...prev.cells, newCell].sort((a, b) => a.name.localeCompare(b.name)),
+        roster: [...prev.roster, { id: memberId, cellId: id, name: leaderName, phone: '', type: 'M' }]
+      }));
       addNotification("Cell created successfully.", "success");
     } catch (error: any) {
       addNotification("Error creating cell: " + error.message, "error");
@@ -492,6 +498,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('cells').delete().eq('id', cellId);
       if (error) throw error;
+      setData(prev => ({
+        ...prev,
+        cells: prev.cells.filter(c => c.id !== cellId),
+        roster: prev.roster.filter(r => r.cellId !== cellId)
+      }));
       addNotification("Cell deleted.", "success");
     } catch (error: any) {
       addNotification("Error deleting cell: " + error.message, "error");

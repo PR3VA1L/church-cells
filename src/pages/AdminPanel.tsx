@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 

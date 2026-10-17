@@ -32,15 +32,16 @@ export default function Assessments() {
     dateRef.current = date;
   }, [scores, date]);
 
-  if (!activeCellId) return <div>Please select a cell first.</div>;
-
   const cell = data.cells.find(c => c.id === activeCellId);
-  const members = data.roster.filter(m => m.cellId === activeCellId && (m.type === 'M' || m.type === 'RM'));
+  const members = React.useMemo(() => {
+    if (!activeCellId) return [];
+    return data.roster.filter(m => m.cellId === activeCellId && (m.type === 'M' || m.type === 'RM'));
+  }, [data.roster, activeCellId]);
   const pillars = data.pillarQuestions;
 
   // Initialize scores from existing data if available for this date
   React.useEffect(() => {
-    if (hasUnsavedChanges) return; // Do not overwrite if user has unsaved changes
+    if (!activeCellId || hasUnsavedChanges) return; // Do not overwrite if user has unsaved changes
 
     const existingScores: Record<string, any> = {};
     const assessmentsForDate = data.assessments.filter(a => a.cellId === activeCellId && a.date === date);
@@ -54,7 +55,7 @@ export default function Assessments() {
       }
     });
     setScores(existingScores);
-  }, [activeCellId, date, data.assessments, data.roster, hasUnsavedChanges]); // Re-run when date changes
+  }, [activeCellId, date, data.assessments, members, hasUnsavedChanges]); // Re-run when date changes
 
   const handleScoreChange = (memberId: string, pillarIndex: number, questionIndex: number, val: number) => {
     setScores(prev => {
@@ -69,6 +70,7 @@ export default function Assessments() {
   };
 
   const handleSave = async (autoSaveScores?: any, autoSaveDate?: any) => {
+    if (!activeCellId) return;
     // Ignore React synthetic events passed from onClick
     const isEvent = autoSaveScores && typeof autoSaveScores === 'object' && 'nativeEvent' in autoSaveScores;
     const currentScores = (!isEvent && autoSaveScores) ? autoSaveScores : scores;
@@ -126,6 +128,7 @@ export default function Assessments() {
   };
 
   React.useEffect(() => {
+    if (!activeCellId) return;
     const interval = setInterval(() => {
       if (hasUnsavedChanges) {
         handleSave(scoresRef.current, dateRef.current);
@@ -154,6 +157,8 @@ export default function Assessments() {
     
     return { answered: answeredQuestions, total: totalQuestions };
   };
+
+  if (!activeCellId) return <div style={{ padding: '2rem', textAlign: 'center' }}>Please select a cell first.</div>;
 
   const pastDates = Array.from(new Set(data.assessments.filter(a => a.cellId === activeCellId).map(a => a.date))).sort().reverse();
 
