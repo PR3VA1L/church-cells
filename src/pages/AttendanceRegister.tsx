@@ -192,7 +192,7 @@ const AttendanceRegister = () => {
                     style={{ flex: 1 }}
                   />
                   <input 
-                    placeholder="Phone (Optional)" 
+                    placeholder="Phone / PIN (Optional)" 
                     value={visitorPhone} 
                     onChange={e => setVisitorPhone(e.target.value)} 
                     style={{ flex: 1 }}

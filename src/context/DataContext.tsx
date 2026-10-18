@@ -97,12 +97,28 @@ export interface AppData {
   assessments: Assessment[];
 }
 
+/**
+ * Normalizes a phone number for LOGIN COMPARISON only.
+ * Strips non-digits, removes country code prefix (27) and leading 0
+ * so that 0847495816, +27847495816, and 847495816 all match.
+ * Leaves short codes/PINs (like 5204 or 0872) intact.
+ */
 export const normalizePhone = (phone: string | undefined | null) => {
-  if (!phone) return phone;
+  if (!phone) return '';
   let p = phone.replace(/\D/g, ''); // strip non-digits
-  if (p.startsWith('27')) p = p.substring(2);
-  if (p.startsWith('0')) p = p.substring(1);
+  if (p.startsWith('27') && p.length >= 11) p = p.substring(2);
+  if (p.startsWith('0') && p.length >= 10) p = p.substring(1);
   return p;
+};
+
+/**
+ * Cleans a phone number for STORAGE.
+ * Only strips whitespace/dashes/parentheses, preserving the user's
+ * intended digits (including leading 0, short PINs like "5204", etc.)
+ */
+export const cleanPhoneForStorage = (phone: string | undefined | null) => {
+  if (!phone) return '';
+  return phone.replace(/[\s\-()]/g, '').trim();
 };
 
 export interface CurrentUser {
@@ -120,6 +136,7 @@ interface DataContextType {
   activeCellId: string | null;
   setActiveCellId: React.Dispatch<React.SetStateAction<string | null>>;
   updateMemberStatus: (memberId: string, newType: 'M' | 'RM' | 'V' | 'C') => Promise<void>;
+  updateMemberPhone: (memberId: string, phone: string) => Promise<void>;
   updateMember: (memberId: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
   addVisitor: (cellId: string, name: string, phone: string) => Promise<Member>;
@@ -295,7 +312,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       } else if (role === 'member') {
         const { data: members, error } = await supabase.from('roster').select('id, cellid, phone');
         if (!error && members) {
-          const match = members.find(m => m.phone && normalizePhone(m.phone) === normalizePhone(authValue));
+          const authClean = cleanPhoneForStorage(authValue);
+          const authNorm = normalizePhone(authValue);
+          const match = members.find(m => {
+            if (!m.phone) return false;
+            // 1. Direct clean match (handles PINs like 5204, exact numbers)
+            if (cleanPhoneForStorage(m.phone) === authClean) return true;
+            // 2. Normalized phone match (handles 084... vs +2784... vs 84...)
+            const mNorm = normalizePhone(m.phone);
+            return mNorm && authNorm && mNorm === authNorm;
+          });
           if (match) {
             setCurrentUser({ role: 'member', cellId: match.cellid, memberId: match.id });
             return true;
@@ -316,6 +342,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // Roster Management
   const updateMemberStatus = async (memberId: string, newType: 'M' | 'RM' | 'V' | 'C') => {
+    // Save previous state for rollback
+    const prevRoster = data.roster;
     try {
       setData(prev => ({
         ...prev,
@@ -325,14 +353,36 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       addNotification("Member status updated.", "success");
     } catch (error: any) {
+      // Rollback optimistic update
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error updating member status: " + error.message, "error");
       throw error;
     }
   };
 
-  const updateMember = async (memberId: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => {
+  const updateMemberPhone = async (memberId: string, phone: string) => {
+    const prevRoster = data.roster;
     try {
-      const cleanPhone = normalizePhone(phone) || '';
+      const cleanPhone = cleanPhoneForStorage(phone);
+      setData(prev => ({
+        ...prev,
+        roster: prev.roster.map(r => r.id === memberId ? { ...r, phone: cleanPhone } : r)
+      }));
+      const { error } = await supabase.from('roster').update({ phone: cleanPhone }).eq('id', memberId);
+      if (error) throw error;
+      addNotification("Phone number updated.", "success");
+    } catch (error: any) {
+      setData(prev => ({ ...prev, roster: prevRoster }));
+      addNotification("Error updating phone: " + error.message, "error");
+      throw error;
+    }
+  };
+
+  const updateMember = async (memberId: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => {
+    // Save previous state for rollback
+    const prevRoster = data.roster;
+    try {
+      const cleanPhone = cleanPhoneForStorage(phone);
       setData(prev => ({
         ...prev,
         roster: prev.roster.map(r => r.id === memberId ? { ...r, phone: cleanPhone, type } : r)
@@ -341,12 +391,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       addNotification("Member info updated.", "success");
     } catch (error: any) {
+      // Rollback optimistic update
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error updating member: " + error.message, "error");
       throw error;
     }
   };
 
   const removeMember = async (memberId: string) => {
+    const prevRoster = data.roster;
     try {
       setData(prev => ({
         ...prev,
@@ -356,49 +409,57 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       addNotification("Member removed.", "success");
     } catch (error: any) {
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error removing member: " + error.message, "error");
       throw error;
     }
   };
 
   const addVisitor = async (cellId: string, name: string, phone: string) => {
+    const prevRoster = data.roster;
     try {
       const id = crypto.randomUUID();
-      const newVisitor: Member = { id, cellId, name, phone, type: 'V' };
+      const cleanPhone = cleanPhoneForStorage(phone);
+      const newVisitor: Member = { id, cellId, name, phone: cleanPhone, type: 'V' };
       
       setData(prev => ({ ...prev, roster: [...prev.roster, newVisitor] }));
       
-      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'V' });
+      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone: cleanPhone, type: 'V' });
       if (error) throw error;
       addNotification("Visitor added successfully.", "success");
       return newVisitor;
     } catch (error: any) {
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error adding visitor: " + error.message, "error");
       throw error;
     }
   };
 
   const addMember = async (cellId: string, name: string, phone: string) => {
+    const prevRoster = data.roster;
     try {
       const id = crypto.randomUUID();
-      const newMember: Member = { id, cellId, name, phone, type: 'M' };
+      const cleanPhone = cleanPhoneForStorage(phone);
+      const newMember: Member = { id, cellId, name, phone: cleanPhone, type: 'M' };
       
       setData(prev => ({ ...prev, roster: [...prev.roster, newMember] }));
       
-      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone, type: 'M' });
+      const { error } = await supabase.from('roster').insert({ id, cellid: cellId, name, phone: cleanPhone, type: 'M' });
       if (error) throw error;
       addNotification("Member added successfully.", "success");
       return newMember;
     } catch (error: any) {
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error adding member: " + error.message, "error");
       throw error;
     }
   };
 
   const addPerson = async (cellId: string, name: string, phone: string, type: 'M' | 'RM' | 'V' | 'C') => {
+    const prevRoster = data.roster;
     try {
       const id = crypto.randomUUID();
-      const cleanPhone = normalizePhone(phone) || '';
+      const cleanPhone = cleanPhoneForStorage(phone);
       const newPerson: Member = { id, cellId, name, phone: cleanPhone, type };
       
       setData(prev => ({ ...prev, roster: [...prev.roster, newPerson] }));
@@ -408,6 +469,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       addNotification("Person added successfully.", "success");
       return newPerson;
     } catch (error: any) {
+      setData(prev => ({ ...prev, roster: prevRoster }));
       addNotification("Error adding person: " + error.message, "error");
       throw error;
     }
@@ -614,7 +676,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       data, setData, 
       currentUser, login, logout,
       activeCellId, setActiveCellId, 
-      updateMemberStatus, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
+      updateMemberStatus, updateMemberPhone, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellName, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
       loading, notifications, addNotification, removeNotification
     }}>

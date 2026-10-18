@@ -65,8 +65,8 @@ const Dashboard = () => {
     return { filteredMeetings: meetings, filteredAssessments: assessments, filteredRoster: roster };
   }, [data, targetCellId, timeFilter, customStart, customEnd]);
 
-  // Calculate KPIs
-  const totalMembers = filteredRoster.filter(m => m.type === 'M').length;
+  // Calculate KPIs (Active members include regular Members and Remote Members)
+  const totalMembers = filteredRoster.filter(m => m.type === 'M' || m.type === 'RM').length;
   const visitorsList = filteredRoster.filter(m => m.type === 'V');
   const totalVisitors = visitorsList.length;
   

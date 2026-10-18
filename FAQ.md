@@ -24,7 +24,7 @@ A comprehensive guide for Church Administrators, Cell Leaders, and Members.
 
 > [!TIP]
 > **Best Practice for Custom Codes:**
-> - **Avoid starting with `0`:** The system's phone cleaner trims leading zeroes for international phone formats (e.g., `0872` is saved as `872`). Codes like `5204` or `9431` avoid any confusion.
+> - **Any digits work:** Custom codes like `5204`, `0872`, or `1001` are fully preserved with all digits intact.
 > - **Make each code unique:** Ensure no two people across the church share the same code, as the system logs into the first person matching that number.
 
 ---

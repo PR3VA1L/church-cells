@@ -4,7 +4,7 @@ import { Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus } fr
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {
-  const { data, activeCellId, updateMember, removeMember, addPerson } = useData();
+  const { data, activeCellId, updateMemberStatus, updateMemberPhone, removeMember, addPerson } = useData();
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
   const [editPhoneValue, setEditPhoneValue] = useState('');
   
@@ -99,8 +99,8 @@ const CellRoster = () => {
               <input value={newName} onChange={e => setNewName(e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
             </div>
             <div style={{ flex: 1, minWidth: '150px' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Phone Number</label>
-              <input value={newPhone} onChange={e => setNewPhone(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Phone Number / PIN</label>
+              <input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="e.g. 0712345678 or 5204" style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
             </div>
             <div style={{ width: '120px' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Type</label>
@@ -141,14 +141,24 @@ const CellRoster = () => {
                         <input 
                           type="text" 
                           className="form-control" 
-                          style={{ padding: '0.25rem', width: '120px' }} 
+                          style={{ padding: '0.25rem 0.5rem', width: '140px', borderRadius: 'var(--radius-sm)' }} 
                           value={editPhoneValue}
                           onChange={(e) => setEditPhoneValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateMemberPhone(person.id, editPhoneValue);
+                              setEditingPhoneId(null);
+                            } else if (e.key === 'Escape') {
+                              setEditingPhoneId(null);
+                            }
+                          }}
+                          placeholder="Phone or PIN"
+                          autoFocus
                         />
-                        <button className="btn" style={{ padding: '0.25rem', background: 'var(--success)', color: 'white' }} onClick={() => { updateMember(person.id, editPhoneValue, person.type); setEditingPhoneId(null); }}>
+                        <button className="btn" style={{ padding: '0.25rem 0.5rem', background: 'var(--success)', color: 'white' }} onClick={() => { updateMemberPhone(person.id, editPhoneValue); setEditingPhoneId(null); }} title="Save">
                           <Check size={14} />
                         </button>
-                        <button className="btn btn-outline" style={{ padding: '0.25rem' }} onClick={() => setEditingPhoneId(null)}>
+                        <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }} onClick={() => setEditingPhoneId(null)} title="Cancel">
                           <X size={14} />
                         </button>
                       </div>
@@ -156,7 +166,7 @@ const CellRoster = () => {
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Phone size={14} className="text-muted" />
                         {person.phone || 'N/A'}
-                        <button className="btn-icon" onClick={() => { setEditingPhoneId(person.id); setEditPhoneValue(person.phone || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        <button className="btn-icon" onClick={() => { setEditingPhoneId(person.id); setEditPhoneValue(person.phone || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Edit Phone / PIN">
                           <Edit2 size={12} className="text-muted" />
                         </button>
                       </span>
@@ -167,7 +177,7 @@ const CellRoster = () => {
                       className={`badge badge-${person.type.toLowerCase()}`}
                       style={{ border: '1px solid currentColor', cursor: 'pointer', outline: 'none', appearance: 'auto', paddingRight: '1.5rem' }}
                       value={person.type}
-                      onChange={(e) => updateMember(person.id, person.phone, e.target.value as 'M'|'RM'|'V'|'C')}
+                      onChange={(e) => updateMemberStatus(person.id, e.target.value as 'M'|'RM'|'V'|'C')}
                     >
                       <option value="M">Member</option>
                       <option value="RM">Remote Member</option>

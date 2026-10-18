@@ -58,7 +58,7 @@ const Login = () => {
       const successLogin = await login(role, password, role === 'leader' ? cellId : null);
       if (!successLogin) {
         if (role === 'member') {
-          setError('Phone number not found in cell roster. Please check your number or contact your leader.');
+          setError('Phone number or PIN not found in cell roster. Please check your number or contact your leader.');
         } else {
           setError('Invalid password. Please try again.');
         }
@@ -316,17 +316,20 @@ const Login = () => {
 
             {role === 'member' ? (
               <div>
-                <label htmlFor="login-phone" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number</label>
+                <label htmlFor="login-phone" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Phone Number / Member PIN</label>
                 <input 
                   id="login-phone"
                   name="tel"
-                  type="tel" 
+                  type="text" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
-                  placeholder="e.g. 0712345678"
+                  placeholder="e.g. 0712345678 or PIN (e.g. 5204)"
                   autoComplete="tel"
                   required 
                 />
+                <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Enter your registered mobile number or assigned numeric code
+                </span>
               </div>
             ) : (
               <div>

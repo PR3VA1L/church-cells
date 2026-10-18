@@ -174,8 +174,8 @@ const AdminPanel = () => {
               <input value={memberName} onChange={e => setMemberName(e.target.value)} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Phone Number</label>
-              <input value={memberPhone} onChange={e => setMemberPhone(e.target.value)} />
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Phone Number / Member PIN</label>
+              <input value={memberPhone} onChange={e => setMemberPhone(e.target.value)} placeholder="e.g. 0712345678 or 5204" />
             </div>
             <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Add Member</button>
           </form>
