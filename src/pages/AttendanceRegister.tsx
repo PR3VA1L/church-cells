@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
-import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
 
 const AttendanceRegister = () => {
   const { data, activeCellId, saveMeeting, addVisitor } = useData();
@@ -223,6 +223,24 @@ const AttendanceRegister = () => {
                 {attendedIds.size}
               </h1>
               <p className="text-muted">Total Present</p>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '1.5rem',
+            padding: '0.85rem 1.25rem',
+            backgroundColor: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            fontSize: '0.875rem',
+            color: 'var(--text-main)'
+          }}>
+            <HelpCircle size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Questions asked during this meeting?</strong> You can record them in the <strong>Questions for Pastor</strong> section from the sidebar so the Pastor can provide biblical answers and guidance.
             </div>
           </div>
         </div>

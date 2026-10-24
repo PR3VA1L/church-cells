@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { LayoutDashboard, Users, UserCheck, LogOut, Shield, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, LogOut, Shield, FileText, HelpCircle } from 'lucide-react';
 import LatinCross from './LatinCross';
 
 const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) => {
@@ -9,6 +9,15 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
   const handleCellChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setActiveCellId(e.target.value);
   };
+
+  const pendingQuestionsCount = useMemo(() => {
+    const list = data.pastorQuestions || [];
+    if (currentUser?.role === 'admin') {
+      return list.filter(q => q.status === 'pending').length;
+    }
+    const myCellId = activeCellId || currentUser?.cellId;
+    return list.filter(q => q.cellId === myCellId && q.status === 'pending').length;
+  }, [data.pastorQuestions, currentUser, activeCellId]);
 
   return (
     <div className="sidebar">
@@ -84,6 +93,13 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
           active={activeTab === 'assessments'} 
           onClick={() => setActiveTab('assessments')} 
         />
+        <NavItem 
+          icon={<HelpCircle size={20} />} 
+          label="Questions for Pastor" 
+          active={activeTab === 'questions'} 
+          onClick={() => setActiveTab('questions')} 
+          badge={pendingQuestionsCount}
+        />
       </nav>
       
       <div style={{ marginTop: 'auto', padding: '0.5rem 1rem' }}>
@@ -98,14 +114,25 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
   );
 };
 
-const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => {
+const NavItem = ({ 
+  icon, 
+  label, 
+  active, 
+  onClick, 
+  badge 
+}: { 
+  icon: React.ReactNode, 
+  label: string, 
+  active: boolean, 
+  onClick: () => void,
+  badge?: number
+}) => {
   return (
     <button 
       onClick={onClick}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
         padding: '0.75rem 1rem',
         borderRadius: 'var(--radius-md)',
         backgroundColor: active ? 'var(--primary-light)' : 'transparent',
@@ -120,8 +147,25 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
       onMouseOver={(e) => { if(!active) { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; } }}
       onMouseOut={(e) => { if(!active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
     >
-      {icon}
-      <span>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {icon}
+          <span>{label}</span>
+        </div>
+        {typeof badge === 'number' && badge > 0 && (
+          <span style={{
+            backgroundColor: active ? 'var(--primary)' : '#f59e0b',
+            color: 'white',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+            padding: '0.15rem 0.5rem',
+            borderRadius: '999px',
+            lineHeight: 1.2
+          }}>
+            {badge}
+          </span>
+        )}
+      </div>
     </button>
   );
 };

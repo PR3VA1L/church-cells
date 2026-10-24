@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Assessments from './pages/Assessments';
 import MemberPortal from './pages/MemberPortal';
+import PastorQuestions from './pages/PastorQuestions';
 import { Menu, WifiOff, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import LatinCross from './components/LatinCross';
 import './index.css';
@@ -157,6 +158,7 @@ function AppContent() {
         {activeTab === 'roster' && <CellRoster />}
         {activeTab === 'attendance' && <AttendanceRegister />}
         {activeTab === 'assessments' && <Assessments />}
+        {activeTab === 'questions' && <PastorQuestions />}
       </main>
     </div>
   );

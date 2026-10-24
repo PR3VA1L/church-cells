@@ -89,12 +89,24 @@ export interface Assessment {
   timestamp: string;
 }
 
+export interface PastorQuestion {
+  id: string;
+  cellId: string;
+  question: string;
+  date: string;
+  status: 'pending' | 'answered';
+  answer?: string;
+  answeredAt?: string;
+  timestamp: string;
+}
+
 export interface AppData {
   cells: Cell[];
   pillarQuestions: PillarQuestion[];
   roster: Member[];
   meetings: Meeting[];
   assessments: Assessment[];
+  pastorQuestions: PastorQuestion[];
 }
 
 /**
@@ -155,6 +167,10 @@ interface DataContextType {
   updateCellStopWords: (cellId: string, words: string[]) => Promise<void>;
   updateAdminPassword: (newPassword: string) => Promise<void>;
   updatePillarQuestions: (questions: PillarQuestion[]) => Promise<void>;
+  addPastorQuestion: (cellId: string, question: string, date?: string) => Promise<PastorQuestion>;
+  updatePastorQuestion: (questionId: string, question: string) => Promise<void>;
+  deletePastorQuestion: (questionId: string) => Promise<void>;
+  answerPastorQuestion: (questionId: string, answer: string, status?: 'pending' | 'answered') => Promise<void>;
   loading: boolean;
   notifications: NotificationMsg[];
   addNotification: (message: string, type: 'error' | 'success' | 'info') => void;
@@ -168,7 +184,8 @@ const defaultData: AppData = {
   pillarQuestions: DEFAULT_PILLAR_QUESTIONS,
   roster: [],
   meetings: [],
-  assessments: []
+  assessments: [],
+  pastorQuestions: []
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -240,6 +257,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         ]);
 
         const adminSettings = settingsRes.data?.find((s: any) => s.id === 'admin');
+        const pastorQuestionsSetting = settingsRes.data?.find((s: any) => s.id === 'pastor_questions');
+        const loadedPastorQuestions: PastorQuestion[] = Array.isArray(pastorQuestionsSetting?.pillar_questions)
+          ? pastorQuestionsSetting.pillar_questions
+          : [];
 
         setData({
           cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
@@ -256,7 +277,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             return { ...m, cellId: m.cellid, attendees };
           }) || []),
           assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
-          pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS
+          pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS,
+          pastorQuestions: loadedPastorQuestions.sort((a, b) => new Date(b.date || b.timestamp).getTime() - new Date(a.date || a.timestamp).getTime())
         });
       } catch (err) {
         console.error("Failed to fetch data", err);
@@ -671,6 +693,114 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addPastorQuestion = async (cellId: string, questionText: string, dateStr?: string) => {
+    const newQuestion: PastorQuestion = {
+      id: 'pq_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      cellId,
+      question: questionText.trim(),
+      date: dateStr || new Date().toISOString().split('T')[0],
+      status: 'pending',
+      answer: '',
+      timestamp: new Date().toISOString()
+    };
+
+    const prevQuestions = data.pastorQuestions || [];
+    const updated = [newQuestion, ...prevQuestions];
+
+    setData(prev => ({
+      ...prev,
+      pastorQuestions: updated
+    }));
+
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        id: 'pastor_questions',
+        adminpassword: '',
+        pillar_questions: updated
+      });
+      if (error) throw error;
+      addNotification("Question submitted for Pastor.", "success");
+      return newQuestion;
+    } catch (err: any) {
+      setData(prev => ({ ...prev, pastorQuestions: prevQuestions }));
+      addNotification("Failed to submit question: " + err.message, "error");
+      throw err;
+    }
+  };
+
+  const updatePastorQuestion = async (questionId: string, questionText: string) => {
+    const prevQuestions = data.pastorQuestions || [];
+    const updated = prevQuestions.map(q => q.id === questionId ? { ...q, question: questionText.trim() } : q);
+
+    setData(prev => ({ ...prev, pastorQuestions: updated }));
+
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        id: 'pastor_questions',
+        adminpassword: '',
+        pillar_questions: updated
+      });
+      if (error) throw error;
+      addNotification("Question updated.", "success");
+    } catch (err: any) {
+      setData(prev => ({ ...prev, pastorQuestions: prevQuestions }));
+      addNotification("Failed to update question: " + err.message, "error");
+      throw err;
+    }
+  };
+
+  const deletePastorQuestion = async (questionId: string) => {
+    const prevQuestions = data.pastorQuestions || [];
+    const updated = prevQuestions.filter(q => q.id !== questionId);
+
+    setData(prev => ({ ...prev, pastorQuestions: updated }));
+
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        id: 'pastor_questions',
+        adminpassword: '',
+        pillar_questions: updated
+      });
+      if (error) throw error;
+      addNotification("Question removed.", "info");
+    } catch (err: any) {
+      setData(prev => ({ ...prev, pastorQuestions: prevQuestions }));
+      addNotification("Failed to remove question: " + err.message, "error");
+      throw err;
+    }
+  };
+
+  const answerPastorQuestion = async (questionId: string, answerText: string, status: 'pending' | 'answered' = 'answered') => {
+    const prevQuestions = data.pastorQuestions || [];
+    const updated = prevQuestions.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          answer: answerText.trim(),
+          status,
+          answeredAt: status === 'answered' ? new Date().toISOString() : undefined
+        };
+      }
+      return q;
+    });
+
+    setData(prev => ({ ...prev, pastorQuestions: updated }));
+
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        id: 'pastor_questions',
+        adminpassword: '',
+        pillar_questions: updated
+      });
+      if (error) throw error;
+      addNotification(status === 'answered' ? "Answer saved and marked as answered." : "Answer updated.", "success");
+    } catch (err: any) {
+      setData(prev => ({ ...prev, pastorQuestions: prevQuestions }));
+      addNotification("Failed to save answer: " + err.message, "error");
+      throw err;
+    }
+  };
+
   return (
     <DataContext.Provider value={{ 
       data, setData, 
@@ -678,6 +808,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMemberPhone, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellName, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
+      addPastorQuestion, updatePastorQuestion, deletePastorQuestion, answerPastorQuestion,
       loading, notifications, addNotification, removeNotification
     }}>
       {children}

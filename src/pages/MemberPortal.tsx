@@ -2,8 +2,46 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { format, parseISO, startOfWeek } from 'date-fns';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { CheckCircle2, Save, LogOut } from 'lucide-react';
+import { CheckCircle2, Save, LogOut, HelpCircle } from 'lucide-react';
 import LatinCross from '../components/LatinCross';
+
+const RATING_SCALE = [
+  { 
+    score: 5, 
+    label: 'Consistently', 
+    desc: 'Always true; established and visible spiritual habit in my life',
+    color: '#10b981',
+    bgColor: 'rgba(16, 185, 129, 0.1)'
+  },
+  { 
+    score: 4, 
+    label: 'Most of the time', 
+    desc: 'Regular practice; dependable pattern of spiritual growth',
+    color: '#3b82f6',
+    bgColor: 'rgba(59, 130, 246, 0.1)'
+  },
+  { 
+    score: 3, 
+    label: 'Often', 
+    desc: 'Frequent; making steady, conscious progress',
+    color: '#f59e0b',
+    bgColor: 'rgba(245, 158, 11, 0.1)'
+  },
+  { 
+    score: 2, 
+    label: 'Sometimes', 
+    desc: 'Occasional or sporadic; still developing consistency',
+    color: '#8b5cf6',
+    bgColor: 'rgba(139, 92, 246, 0.1)'
+  },
+  { 
+    score: 1, 
+    label: 'Not yet', 
+    desc: 'Rarely or not started yet; a fresh focus for prayer and effort',
+    color: '#ef4444',
+    bgColor: 'rgba(239, 68, 68, 0.1)'
+  }
+];
 
 const MemberPortal = () => {
   const { data, currentUser, logout, saveAssessment } = useData();
@@ -219,6 +257,65 @@ const MemberPortal = () => {
             )}
           </div>
 
+          {block.isCurrent && (
+            <div style={{
+              marginBottom: '1.5rem',
+              padding: '1.25rem',
+              backgroundColor: 'var(--bg-color)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <HelpCircle size={18} color="var(--primary)" />
+                  <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    Assessment Rating Scale Guide (1 to 5)
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Rate your consistency from 1 (Not yet) to 5 (Consistently)
+                </span>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '0.75rem'
+              }}>
+                {RATING_SCALE.map(scale => (
+                  <div key={scale.score} style={{
+                    padding: '0.75rem 0.875rem',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderTop: `3px solid ${scale.color}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, fontSize: '1.1rem', color: scale.color }}>
+                        {scale.score}
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.4rem',
+                        borderRadius: '999px',
+                        backgroundColor: scale.bgColor,
+                        color: scale.color
+                      }}>
+                        {scale.label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.3', marginTop: '0.25rem' }}>
+                      {scale.desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {block.isCurrent && successMsg && (
             <div style={{ marginBottom: '1.5rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
               <CheckCircle2 size={18} /> {successMsg}
@@ -257,14 +354,16 @@ const MemberPortal = () => {
                           
                           if (isCurrentEditDate) {
                             const val = scores?.[pIdx]?.[qIdx] || 0;
+                            const currentRating = RATING_SCALE.find(s => s.score === val);
                             return (
                               <td key={d} style={{ textAlign: 'center', background: 'rgba(99, 102, 241, 0.05)', padding: '0.75rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
                                 <select 
                                   value={val} 
                                   onChange={(e) => handleScoreChange(pIdx, qIdx, Number(e.target.value))}
+                                  title={val > 0 ? `${val} - ${currentRating?.label}` : 'Select score'}
                                   style={{ 
                                     width: '100%', 
-                                    padding: '0.5rem', 
+                                    padding: '0.5rem 0.25rem', 
                                     border: val > 0 ? '1px solid var(--primary)' : '1px solid var(--border)',
                                     borderRadius: 'var(--radius-sm)',
                                     outline: 'none',
@@ -272,26 +371,29 @@ const MemberPortal = () => {
                                     color: val > 0 ? 'white' : 'var(--text-main)',
                                     fontWeight: val > 0 ? 600 : 'normal',
                                     textAlign: 'center',
-                                    appearance: 'none',
                                     cursor: 'pointer',
                                     boxShadow: val > 0 ? '0 2px 4px rgba(99, 102, 241, 0.2)' : 'none',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    fontSize: '0.85rem'
                                   }}
                                 >
                                   <option value={0}>-</option>
-                                  <option value={1}>1</option>
-                                  <option value={2}>2</option>
-                                  <option value={3}>3</option>
-                                  <option value={4}>4</option>
-                                  <option value={5}>5</option>
+                                  <option value={5}>5 - Consistently</option>
+                                  <option value={4}>4 - Most of the time</option>
+                                  <option value={3}>3 - Often</option>
+                                  <option value={2}>2 - Sometimes</option>
+                                  <option value={1}>1 - Not yet</option>
                                 </select>
                               </td>
                             );
                           } else {
                             const pastAss = block.assessments.find(a => a.date === d);
                             const val = pastAss?.scores?.[pIdx]?.[qIdx] || 0;
+                            const rating = RATING_SCALE.find(s => s.score === val);
                             return (
-                              <td key={d} style={{ textAlign: 'center', fontWeight: val > 0 ? 600 : 'normal', color: val > 0 ? 'var(--text-main)' : 'var(--text-muted)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                              <td key={d} 
+                                title={val > 0 ? `${val}/5 - ${rating?.label}: ${rating?.desc}` : 'Not assessed'}
+                                style={{ textAlign: 'center', fontWeight: val > 0 ? 600 : 'normal', color: val > 0 ? 'var(--text-main)' : 'var(--text-muted)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', cursor: val > 0 ? 'help' : 'default' }}>
                                 {val > 0 ? val : '-'}
                               </td>
                             );

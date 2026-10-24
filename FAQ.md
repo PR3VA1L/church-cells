@@ -80,6 +80,16 @@ The leader can quickly add or correct the number on the **Cell Roster** tab.
 
 ---
 
+### Q: What does the 1 to 5 rating scale mean on the self-assessment sheet?
+**A:** When members rate themselves across the spiritual pillars, the scores represent:
+* **5 — Consistently**: Always true; established and visible spiritual habit in daily life.
+* **4 — Most of the time**: Regular practice; dependable pattern of positive spiritual growth.
+* **3 — Often**: Frequent; making steady, conscious progress.
+* **2 — Sometimes**: Occasional or sporadic; still developing consistency.
+* **1 — Not yet**: Rarely or not yet practiced; an area for prayer, guidance, and fresh effort.
+
+---
+
 ### Q: What happens if the church updates the assessment questions later?
 **A:** The app uses **Dynamic Schema Snapshotting**. Whenever an assessment is saved, it snapshots the exact wording of the questions at that time. If church leadership modifies or rewinds questions in the future, past assessments remain displayed under their historical wording without breaking or losing data.
 
@@ -98,3 +108,24 @@ The leader can quickly add or correct the number on the **Cell Roster** tab.
 
 ### Q: Can church administrators rename a cell?
 **A:** **Yes.** In the **Admin Panel**, administrators can click the **"Rename Cell"** button next to any cell to update its name immediately without losing meetings, attendance records, or member rosters.
+
+---
+
+## ❓ 5. Questions for Pastor (Cell Q&A)
+
+### Q: How do cell leaders record questions asked in their cell meetings?
+**A:** 
+1. In the sidebar, click **"Questions for Pastor"** (or use the reminder note on the Attendance Register).
+2. Click **"Record a Cell Question"**.
+3. Pick the meeting date, type the question asked in the cell, and click **"Save Question for Pastor"**.
+
+### Q: Are member names attached to the questions?
+**A:** **No, it is 100% anonymous.** The system only records the question text, the meeting date, and the cell group. Member names are never collected or displayed, allowing members and visitors to ask deep, candid theological or personal questions without hesitation.
+
+### Q: How does the Pastor answer cell questions?
+**A:** 
+1. The Pastor (logged in as Administrator) clicks **"Questions for Pastor"** in the sidebar.
+2. A badge displays the number of questions awaiting answers across the church.
+3. The Pastor can filter by cell group or view all questions.
+4. Click **"Answer This Question"** to type biblical guidance and answers, then click **"Save & Mark Answered"**.
+5. The answer immediately becomes visible to the cell leader in their portal to share with their cell group!
