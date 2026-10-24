@@ -111,21 +111,19 @@ The leader can quickly add or correct the number on the **Cell Roster** tab.
 
 ---
 
-## ❓ 5. Questions for Pastor (Cell Q&A)
+## 📖 5. Key Biblical Questions (Cell Q&A)
 
 ### Q: How do cell leaders record questions asked in their cell meetings?
 **A:** 
-1. In the sidebar, click **"Questions for Pastor"** (or use the reminder note on the Attendance Register).
-2. Click **"Record a Cell Question"**.
-3. Pick the meeting date, type the question asked in the cell, and click **"Save Question for Pastor"**.
+1. In the sidebar, click **"Key Biblical Questions"** (or use the reminder note on the Attendance Register).
+2. Click **"Record a Biblical Question"**.
+3. Pick the meeting date, type the question asked in the cell, and click **"Save Question"**.
 
 ### Q: Are member names attached to the questions?
 **A:** **No, it is 100% anonymous.** The system only records the question text, the meeting date, and the cell group. Member names are never collected or displayed, allowing members and visitors to ask deep, candid theological or personal questions without hesitation.
 
-### Q: How does the Pastor answer cell questions?
+### Q: How are questions answered and who marks them as answered?
 **A:** 
-1. The Pastor (logged in as Administrator) clicks **"Questions for Pastor"** in the sidebar.
-2. A badge displays the number of questions awaiting answers across the church.
-3. The Pastor can filter by cell group or view all questions.
-4. Click **"Answer This Question"** to type biblical guidance and answers, then click **"Save & Mark Answered"**.
-5. The answer immediately becomes visible to the cell leader in their portal to share with their cell group!
+1. The Pastor addresses and answers the questions verbally during Sunday church services, leadership gatherings, or other church meetings.
+2. Once the question has been addressed by the Pastor, the **Cell Leader** goes to **"Key Biblical Questions"** and clicks **"Mark as Answered in Church"**.
+3. Leaders can also optionally click **"Add Teaching Notes / Summary"** to write down scriptures or key takeaways shared by the Pastor.

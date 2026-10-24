@@ -240,7 +240,7 @@ const AttendanceRegister = () => {
           }}>
             <HelpCircle size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
             <div>
-              <strong>Questions asked during this meeting?</strong> You can record them in the <strong>Questions for Pastor</strong> section from the sidebar so the Pastor can provide biblical answers and guidance.
+              <strong>Biblical questions asked during this meeting?</strong> You can record them in the <strong>Key Biblical Questions</strong> section from the sidebar so the Pastor can address them in church or leadership meetings.
             </div>
           </div>
         </div>

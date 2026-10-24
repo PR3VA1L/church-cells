@@ -14,7 +14,8 @@ import {
   ShieldCheck, 
   X, 
   Sparkles,
-  BookOpen
+  BookOpen,
+  RotateCcw
 } from 'lucide-react';
 import LatinCross from '../components/LatinCross';
 
@@ -43,7 +44,7 @@ export default function PastorQuestions() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [editQuestionText, setEditQuestionText] = useState('');
 
-  // Pastor answer form state
+  // Teaching summary / answer notes state
   const [answeringQuestionId, setAnsweringQuestionId] = useState<string | null>(null);
   const [answerDraft, setAnswerDraft] = useState('');
 
@@ -141,11 +142,17 @@ export default function PastorQuestions() {
     }
   };
 
-  const handleSaveAnswer = async (questionId: string) => {
-    if (!answerDraft.trim()) {
-      alert("Please provide an answer or guidance.");
-      return;
+  // Quick 1-click action for cell leaders when pastor answers in church / meeting
+  const handleQuickMarkAnswered = async (questionId: string, currentAnswer?: string) => {
+    try {
+      await answerPastorQuestion(questionId, currentAnswer || '', 'answered');
+    } catch {
+      // Error handled by DataContext notification
     }
+  };
+
+  // Save notes or summary of pastor's teaching
+  const handleSaveAnswerNotes = async (questionId: string) => {
     try {
       await answerPastorQuestion(questionId, answerDraft, 'answered');
       setAnsweringQuestionId(null);
@@ -156,7 +163,7 @@ export default function PastorQuestions() {
   };
 
   const handleToggleUnanswered = async (questionId: string, currentAnswer?: string) => {
-    if (window.confirm("Mark this question as pending/unanswered?")) {
+    if (window.confirm("Mark this question as awaiting answer in church?")) {
       await answerPastorQuestion(questionId, currentAnswer || '', 'pending');
     }
   };
@@ -181,24 +188,24 @@ export default function PastorQuestions() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', marginBottom: '0.25rem' }}>
             <LatinCross size={22} />
             <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              {isAdmin ? 'Questions from Cells (Pastor Q&A)' : 'Questions for Pastor'}
+              Key Biblical Questions
             </h1>
           </div>
           <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
             {isAdmin 
-              ? 'Review questions asked across cell meetings and provide pastoral or biblical answers.' 
-              : `Record questions asked in ${currentCell?.name || 'your cell'} meetings for pastoral answers.`}
+              ? 'Review biblical and theological questions asked across cell meetings for the Pastor to address in church or leadership meetings.' 
+              : `Record key biblical questions asked in ${currentCell?.name || 'your cell'} meetings so the Pastor can address them. Once answered in church, mark them as answered.`}
           </p>
         </div>
 
-        {/* Action Button for Leaders & Admins */}
+        {/* Action Button */}
         <button
           className="btn btn-primary"
           onClick={() => setShowAddForm(!showAddForm)}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem' }}
         >
           {showAddForm ? <X size={18} /> : <MessageSquare size={18} />}
-          {showAddForm ? 'Cancel' : 'Record a Cell Question'}
+          {showAddForm ? 'Cancel' : 'Record a Biblical Question'}
         </button>
       </div>
 
@@ -217,7 +224,7 @@ export default function PastorQuestions() {
       }}>
         <ShieldCheck size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
         <div>
-          <strong>Anonymous Question Policy:</strong> We only record the question text itself—never who asked it. Members and visitors can ask freely and openly without fear of embarrassment.
+          <strong>Anonymous Question Policy:</strong> Only the question itself is recorded—never who asked it. Members and visitors can ask freely and openly without hesitation.
         </div>
       </div>
 
@@ -233,7 +240,7 @@ export default function PastorQuestions() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--primary)' }}>
             <Sparkles size={20} />
-            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600 }}>Record a Question for the Pastor</h3>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600 }}>Record a Key Biblical Question</h3>
           </div>
 
           <form onSubmit={handleCreateQuestion}>
@@ -276,7 +283,7 @@ export default function PastorQuestions() {
               <textarea
                 value={newQuestionText}
                 onChange={(e) => setNewQuestionText(e.target.value)}
-                placeholder="Type the question as asked during cell... (e.g., 'Can someone lose their salvation?', 'How do we pray when we feel God is silent?')"
+                placeholder="Type the biblical or spiritual question... (e.g., 'Can someone lose their salvation?', 'How do we understand the gifts of the Spirit in 1 Cor 12?')"
                 rows={3}
                 style={{
                   width: '100%',
@@ -292,7 +299,7 @@ export default function PastorQuestions() {
                 required
               />
               <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                Note: Do not include names or identifiable personal info.
+                Note: Do not include names or personal identifying details.
               </span>
             </div>
 
@@ -312,7 +319,7 @@ export default function PastorQuestions() {
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
                 <Send size={16} />
-                {isSubmitting ? 'Submitting...' : 'Save Question for Pastor'}
+                {isSubmitting ? 'Submitting...' : 'Save Question'}
               </button>
             </div>
           </form>
@@ -331,7 +338,7 @@ export default function PastorQuestions() {
             <BookOpen size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Questions</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Biblical Questions</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>{stats.total}</div>
           </div>
         </div>
@@ -341,7 +348,7 @@ export default function PastorQuestions() {
             <Clock size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Awaiting Pastor's Answer</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Awaiting Answer in Church</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#d97706' }}>{stats.pending}</div>
           </div>
         </div>
@@ -351,7 +358,7 @@ export default function PastorQuestions() {
             <CheckCircle2 size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Answered & Guided</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Answered & Addressed</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669' }}>{stats.answered}</div>
           </div>
         </div>
@@ -388,7 +395,7 @@ export default function PastorQuestions() {
             onClick={() => setStatusFilter('answered')}
             style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
           >
-            Answered ({stats.answered})
+            Answered in Church ({stats.answered})
           </button>
         </div>
 
@@ -447,8 +454,8 @@ export default function PastorQuestions() {
             {searchQuery 
               ? 'No questions matched your search query. Try another search term.' 
               : statusFilter === 'pending'
-                ? 'All questions currently have answers. Great job!'
-                : 'Questions asked by cell members during meetings will appear here once recorded.'}
+                ? 'All questions have been addressed. Great job!'
+                : 'Questions asked by members during cell meetings will appear here once recorded.'}
           </p>
           {!showAddForm && (
             <button 
@@ -494,7 +501,7 @@ export default function PastorQuestions() {
                       color: isAnswered ? '#059669' : '#d97706'
                     }}>
                       {isAnswered ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                      {isAnswered ? 'Answered' : 'Awaiting Pastor'}
+                      {isAnswered ? 'Answered in Church' : 'Awaiting Answer in Church'}
                     </span>
 
                     <span style={{
@@ -513,7 +520,7 @@ export default function PastorQuestions() {
                     </span>
                   </div>
 
-                  {/* Action Buttons for Leader/Admin */}
+                  {/* Edit/Delete Actions */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {!isEditingThis && (
                       <button
@@ -585,7 +592,7 @@ export default function PastorQuestions() {
                   </div>
                 )}
 
-                {/* Pastor Answer Display */}
+                {/* If Answered: Display Status and optional Teaching Notes */}
                 {isAnswered && !isAnsweringThis && (
                   <div style={{
                     marginTop: '0.75rem',
@@ -594,47 +601,77 @@ export default function PastorQuestions() {
                     border: '1px solid rgba(16, 185, 129, 0.25)',
                     borderRadius: 'var(--radius-md)'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: q.answer ? '0.5rem' : '0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#059669', fontWeight: 600, fontSize: '0.85rem' }}>
-                        <LatinCross size={16} />
-                        <span>Pastor's Answer & Guidance</span>
+                        <CheckCircle2 size={16} />
+                        <span>Addressed & Answered by Pastor in Church / Meeting</span>
                       </div>
                       {q.answeredAt && (
                         <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                          Answered {format(parseISO(q.answeredAt), 'MMM d, yyyy')}
+                          Marked answered {format(parseISO(q.answeredAt), 'MMM d, yyyy')}
                         </span>
                       )}
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.925rem', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                      {q.answer}
-                    </p>
 
-                    {isAdmin && (
-                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
-                        <button
-                          className="btn btn-outline"
-                          onClick={() => {
-                            setAnsweringQuestionId(q.id);
-                            setAnswerDraft(q.answer || '');
-                          }}
-                          style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
-                        >
-                          Edit Answer
-                        </button>
-                        <button
-                          className="btn"
-                          onClick={() => handleToggleUnanswered(q.id, q.answer)}
-                          style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}
-                        >
-                          Mark as Unanswered
-                        </button>
+                    {q.answer && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase' }}>
+                          Summary / Scriptures:
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.925rem', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                          {q.answer}
+                        </p>
                       </div>
                     )}
+
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => {
+                          setAnsweringQuestionId(q.id);
+                          setAnswerDraft(q.answer || '');
+                        }}
+                        style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+                      >
+                        {q.answer ? 'Edit Teaching Notes' : '+ Add Teaching Notes / Summary'}
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => handleToggleUnanswered(q.id, q.answer)}
+                        style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        <RotateCcw size={13} /> Mark as Awaiting Answer
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Pastor Answering Form (For Admin / Pastor) */}
-                {isAnsweringThis ? (
+                {/* If Not Answered: Cell Leader (or Admin) can mark as answered when addressed in church */}
+                {!isAnswered && !isAnsweringThis && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleQuickMarkAnswered(q.id, q.answer)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
+                    >
+                      <CheckCircle2 size={16} /> Mark as Answered in Church
+                    </button>
+
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => {
+                        setAnsweringQuestionId(q.id);
+                        setAnswerDraft(q.answer || '');
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
+                    >
+                      <Edit3 size={15} /> Add Answer Notes & Mark Answered
+                    </button>
+                  </div>
+                )}
+
+                {/* Notes Editor (Optional summary of pastor's answer/scriptures) */}
+                {isAnsweringThis && (
                   <div style={{
                     marginTop: '1rem',
                     padding: '1.25rem',
@@ -643,14 +680,14 @@ export default function PastorQuestions() {
                     borderRadius: 'var(--radius-md)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: 600 }}>
-                      <LatinCross size={18} />
-                      <span>{isAnswered ? 'Edit Pastor Answer' : 'Provide Pastor Answer'}</span>
+                      <BookOpen size={18} />
+                      <span>Teaching Notes & Scriptures (Optional)</span>
                     </div>
                     <textarea
                       value={answerDraft}
                       onChange={(e) => setAnswerDraft(e.target.value)}
-                      placeholder="Type pastoral response, scripture references, and guidance here..."
-                      rows={4}
+                      placeholder="Add summary of how Pastor answered this in church, scriptures given, or key points for cell discussion..."
+                      rows={3}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -675,28 +712,13 @@ export default function PastorQuestions() {
                       </button>
                       <button
                         className="btn btn-primary"
-                        onClick={() => handleSaveAnswer(q.id)}
+                        onClick={() => handleSaveAnswerNotes(q.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                       >
                         <CheckCircle2 size={16} /> Save & Mark Answered
                       </button>
                     </div>
                   </div>
-                ) : (
-                  isAdmin && !isAnswered && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          setAnsweringQuestionId(q.id);
-                          setAnswerDraft('');
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.4rem 0.85rem' }}
-                      >
-                        <LatinCross size={16} /> Answer This Question
-                      </button>
-                    </div>
-                  )
                 )}
               </div>
             );

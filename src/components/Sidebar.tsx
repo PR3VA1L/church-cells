@@ -95,7 +95,7 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
         />
         <NavItem 
           icon={<HelpCircle size={20} />} 
-          label="Questions for Pastor" 
+          label="Key Biblical Questions" 
           active={activeTab === 'questions'} 
           onClick={() => setActiveTab('questions')} 
           badge={pendingQuestionsCount}
