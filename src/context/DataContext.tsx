@@ -717,6 +717,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
+        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -738,6 +739,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
+        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -758,6 +760,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
+        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -788,6 +791,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
+        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
