@@ -2,9 +2,25 @@ import React, { useRef, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Users, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target, Settings, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { parseISO, startOfWeek, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, format } from 'date-fns';
+import { parseISO, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, subDays, format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LatinCross from '../components/LatinCross';
+
+export const hasValidScores = (scores: any): boolean => {
+  if (!scores || typeof scores !== 'object') return false;
+  let answered = 0;
+  for (const [key, questions] of Object.entries(scores)) {
+    if (key === '_snapshot') continue;
+    if (questions && typeof questions === 'object') {
+      for (const val of Object.values(questions as Record<string, any>)) {
+        if (Number(val) > 0) {
+          answered++;
+        }
+      }
+    }
+  }
+  return answered > 0;
+};
 
 const Dashboard = () => {
   const { data, currentUser, activeCellId, updateCellPassword, updateCellEmail } = useData();
@@ -40,25 +56,33 @@ const Dashboard = () => {
     // Filter by Time
     if (timeFilter !== 'all') {
       const now = new Date();
-      let start = now;
-      let end = now;
+      let start: Date;
+      let end: Date = now;
+      let isCustom = false;
       
-      if (timeFilter === 'week') start = startOfWeek(now, { weekStartsOn: 1 });
-      else if (timeFilter === 'month') start = startOfMonth(now);
-      else if (timeFilter === 'year') start = startOfYear(now);
-      else if (timeFilter === 'custom') {
+      if (timeFilter === 'week') {
+        // Last 7 days (rolling window, not calendar week)
+        start = subDays(now, 7);
+      } else if (timeFilter === 'month') {
+        start = startOfMonth(now);
+      } else if (timeFilter === 'year') {
+        start = startOfYear(now);
+      } else if (timeFilter === 'custom') {
         start = customStart ? new Date(customStart) : new Date(0);
         end = customEnd ? endOfDay(new Date(customEnd)) : now;
+        isCustom = true;
+      } else {
+        start = new Date(0);
       }
 
       meetings = meetings.filter(m => {
         const d = parseISO(m.date);
-        return (isAfter(d, start) || d.getTime() === start.getTime()) && (timeFilter === 'custom' ? (isBefore(d, end) || d.getTime() === end.getTime()) : true);
+        return isAfter(d, start) && (isCustom ? isBefore(d, end) : true);
       });
 
       assessments = assessments.filter(a => {
         const d = parseISO(a.date);
-        return (isAfter(d, start) || d.getTime() === start.getTime()) && (timeFilter === 'custom' ? (isBefore(d, end) || d.getTime() === end.getTime()) : true);
+        return isAfter(d, start) && (isCustom ? isBefore(d, end) : true);
       });
     }
 
@@ -135,12 +159,47 @@ const Dashboard = () => {
 
   const { completedMembers, incompleteMembers } = useMemo(() => {
     const members = filteredRoster.filter(m => m.type === 'M' || m.type === 'RM');
-    const assessedMemberIds = new Set(filteredAssessments.map(a => a.memberId));
-    
+
+    // Determine the date window for completion check
+    const now = new Date();
+    let windowStart: Date | null = null;
+    let windowEnd: Date = now;
+    let isCustomWindow = false;
+
+    if (timeFilter === 'week') {
+      windowStart = subDays(now, 7);
+    } else if (timeFilter === 'month') {
+      windowStart = startOfMonth(now);
+    } else if (timeFilter === 'year') {
+      windowStart = startOfYear(now);
+    } else if (timeFilter === 'custom') {
+      windowStart = customStart ? new Date(customStart) : null;
+      windowEnd = customEnd ? endOfDay(new Date(customEnd)) : now;
+      isCustomWindow = true;
+    }
+    // 'all' => windowStart stays null (no date restriction)
+
+    // Build set of memberIds who submitted an assessment within the window
+    const assessedMemberIds = new Set(
+      data.assessments
+        .filter(a => {
+          // Cell filter
+          if (targetCellId && a.cellId !== targetCellId) return false;
+          // Date window filter
+          if (windowStart !== null) {
+            const d = parseISO(a.date);
+            if (!isAfter(d, windowStart)) return false;
+            if (isCustomWindow && !isBefore(d, windowEnd)) return false;
+          }
+          return true;
+        })
+        .map(a => a.memberId)
+    );
+
     const completed = members.filter(m => assessedMemberIds.has(m.id));
     const incomplete = members.filter(m => !assessedMemberIds.has(m.id));
     return { completedMembers: completed, incompleteMembers: incomplete };
-  }, [filteredRoster, filteredAssessments]);
+  }, [filteredRoster, data.assessments, timeFilter, customStart, customEnd, targetCellId]);
 
   const trendData = useMemo(() => {
     const byDate: Record<string, any> = {};
@@ -308,7 +367,7 @@ const Dashboard = () => {
             style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: '500', color: 'var(--text-main)', cursor: 'pointer' }}
           >
             <option value="all">All Time</option>
-            <option value="week">This Week</option>
+            <option value="week">Last 7 Days</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
             <option value="custom">Custom Range</option>
