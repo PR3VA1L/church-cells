@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
 
 const AttendanceRegister = () => {
@@ -96,7 +96,7 @@ const AttendanceRegister = () => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const filteredMeetings = pastMeetings.filter(m => 
-    m.date.includes(searchTerm) || format(new Date(m.date), 'MMMM d, yyyy').toLowerCase().includes(searchTerm.toLowerCase())
+    m.date.includes(searchTerm) || format(parseISO(m.date), 'MMMM d, yyyy').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -266,7 +266,7 @@ const AttendanceRegister = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   {expandedId === meeting.id ? <ChevronDown size={20} color="var(--primary)" /> : <ChevronRight size={20} color="var(--primary)" />}
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{format(new Date(meeting.date), 'MMMM d, yyyy')}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{format(parseISO(meeting.date), 'MMMM d, yyyy')}</h3>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>

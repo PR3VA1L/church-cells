@@ -585,7 +585,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setData(prev => ({
         ...prev,
         cells: prev.cells.filter(c => c.id !== cellId),
-        roster: prev.roster.filter(r => r.cellId !== cellId)
+        roster: prev.roster.filter(r => r.cellId !== cellId),
+        meetings: prev.meetings.filter(m => m.cellId !== cellId),
+        assessments: prev.assessments.filter(a => a.cellId !== cellId)
       }));
       addNotification("Cell deleted.", "success");
     } catch (error: any) {
@@ -715,7 +717,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
-        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -737,7 +738,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
-        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -758,7 +758,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
-        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;
@@ -789,7 +788,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.from('settings').upsert({
         id: 'pastor_questions',
-        adminpassword: '',
         pillar_questions: updated
       });
       if (error) throw error;

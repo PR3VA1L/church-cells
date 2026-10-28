@@ -77,12 +77,12 @@ const Dashboard = () => {
 
       meetings = meetings.filter(m => {
         const d = parseISO(m.date);
-        return isAfter(d, start) && (isCustom ? isBefore(d, end) : true);
+        return !isBefore(d, start) && (isCustom ? isBefore(d, end) : true);
       });
 
       assessments = assessments.filter(a => {
         const d = parseISO(a.date);
-        return isAfter(d, start) && (isCustom ? isBefore(d, end) : true);
+        return !isBefore(d, start) && (isCustom ? isBefore(d, end) : true);
       });
     }
 
@@ -188,7 +188,7 @@ const Dashboard = () => {
           // Date window filter
           if (windowStart !== null) {
             const d = parseISO(a.date);
-            if (!isAfter(d, windowStart)) return false;
+            if (isBefore(d, windowStart)) return false;
             if (isCustomWindow && !isBefore(d, windowEnd)) return false;
           }
           return true;
