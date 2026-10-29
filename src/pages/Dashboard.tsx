@@ -2,18 +2,20 @@ import React, { useRef, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Users, Activity, UserPlus, Download, Image as ImageIcon, Calendar, Target, Settings, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { parseISO, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, subDays, format } from 'date-fns';
+import { parseISO, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, startOfDay, subDays, format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LatinCross from '../components/LatinCross';
 
 export const hasValidScores = (scores: any): boolean => {
   if (!scores || typeof scores !== 'object') return false;
   let answered = 0;
-  for (const [key, questions] of Object.entries(scores)) {
-    if (key === '_snapshot') continue;
-    if (questions && typeof questions === 'object') {
-      for (const val of Object.values(questions as Record<string, any>)) {
-        if (Number(val) > 0) {
+  for (const [key, val] of Object.entries(scores)) {
+    if (key === '_snapshot' || key === 'timestamp') continue;
+    if (typeof val === 'number' && val > 0) {
+      answered++;
+    } else if (val && typeof val === 'object') {
+      for (const subVal of Object.values(val as Record<string, any>)) {
+        if (Number(subVal) > 0) {
           answered++;
         }
       }
@@ -43,7 +45,7 @@ const Dashboard = () => {
   // Filter Data
   const { filteredMeetings, filteredAssessments, filteredRoster } = useMemo(() => {
     let meetings = data.meetings;
-    let assessments = data.assessments;
+    let assessments = data.assessments.filter(a => hasValidScores(a.scores));
     let roster = data.roster;
 
     // Filter by Cell
@@ -57,32 +59,30 @@ const Dashboard = () => {
     if (timeFilter !== 'all') {
       const now = new Date();
       let start: Date;
-      let end: Date = now;
-      let isCustom = false;
+      let end: Date = endOfDay(now);
       
       if (timeFilter === 'week') {
-        // Last 7 days (rolling window, not calendar week)
-        start = subDays(now, 7);
+        // Last 7 full days (rolling window)
+        start = startOfDay(subDays(now, 7));
       } else if (timeFilter === 'month') {
-        start = startOfMonth(now);
+        start = startOfDay(startOfMonth(now));
       } else if (timeFilter === 'year') {
-        start = startOfYear(now);
+        start = startOfDay(startOfYear(now));
       } else if (timeFilter === 'custom') {
-        start = customStart ? new Date(customStart) : new Date(0);
-        end = customEnd ? endOfDay(new Date(customEnd)) : now;
-        isCustom = true;
+        start = customStart ? startOfDay(parseISO(customStart)) : new Date(0);
+        end = customEnd ? endOfDay(parseISO(customEnd)) : endOfDay(now);
       } else {
         start = new Date(0);
       }
 
       meetings = meetings.filter(m => {
         const d = parseISO(m.date);
-        return !isBefore(d, start) && (isCustom ? isBefore(d, end) : true);
+        return !isBefore(d, start) && !isAfter(d, end);
       });
 
       assessments = assessments.filter(a => {
         const d = parseISO(a.date);
-        return !isBefore(d, start) && (isCustom ? isBefore(d, end) : true);
+        return !isBefore(d, start) && !isAfter(d, end);
       });
     }
 
@@ -163,34 +163,32 @@ const Dashboard = () => {
     // Determine the date window for completion check
     const now = new Date();
     let windowStart: Date | null = null;
-    let windowEnd: Date = now;
-    let isCustomWindow = false;
+    let windowEnd: Date = endOfDay(now);
 
     if (timeFilter === 'week') {
-      windowStart = subDays(now, 7);
+      windowStart = startOfDay(subDays(now, 7));
     } else if (timeFilter === 'month') {
-      windowStart = startOfMonth(now);
+      windowStart = startOfDay(startOfMonth(now));
     } else if (timeFilter === 'year') {
-      windowStart = startOfYear(now);
+      windowStart = startOfDay(startOfYear(now));
     } else if (timeFilter === 'custom') {
-      windowStart = customStart ? new Date(customStart) : null;
-      windowEnd = customEnd ? endOfDay(new Date(customEnd)) : now;
-      isCustomWindow = true;
+      windowStart = customStart ? startOfDay(parseISO(customStart)) : null;
+      windowEnd = customEnd ? endOfDay(parseISO(customEnd)) : endOfDay(now);
     }
     // 'all' => windowStart stays null (no date restriction)
 
-    // Build set of memberIds who submitted an assessment within the window
+    // Build set of memberIds who submitted a VALID non-empty assessment within the window
     const assessedMemberIds = new Set(
       data.assessments
         .filter(a => {
           // Cell filter
           if (targetCellId && a.cellId !== targetCellId) return false;
+          // Must have valid answered questions
+          if (!hasValidScores(a.scores)) return false;
           // Date window filter
-          if (windowStart !== null) {
-            const d = parseISO(a.date);
-            if (isBefore(d, windowStart)) return false;
-            if (isCustomWindow && !isBefore(d, windowEnd)) return false;
-          }
+          const d = parseISO(a.date);
+          if (windowStart !== null && isBefore(d, windowStart)) return false;
+          if (isAfter(d, windowEnd)) return false;
           return true;
         })
         .map(a => a.memberId)

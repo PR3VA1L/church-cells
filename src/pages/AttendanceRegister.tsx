@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { format, parseISO } from 'date-fns';
-import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
+import { UserPlus, Save, CheckCircle2, Plus, Search, ChevronDown, ChevronRight, HelpCircle, UserCheck } from 'lucide-react';
 
 const AttendanceRegister = () => {
   const { data, activeCellId, saveMeeting, addVisitor } = useData();
@@ -89,7 +89,17 @@ const AttendanceRegister = () => {
     }
   };
 
-  if (!activeCell) return <div className="page-header"><h1>Attendance Register</h1><p className="text-muted">Please select a cell group from the sidebar.</p></div>;
+  if (!activeCell) {
+    return (
+      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '3rem auto' }}>
+        <UserCheck size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
+        <h2 style={{ color: 'var(--text-main)', marginBottom: '0.5rem' }}>Select a Cell Group</h2>
+        <p className="text-muted">
+          To take or review meeting attendance registers, please select a specific cell group from the dropdown in the sidebar.
+        </p>
+      </div>
+    );
+  }
 
   const pastMeetings = (data.meetings || [])
     .filter(m => m.cellId === activeCellId)

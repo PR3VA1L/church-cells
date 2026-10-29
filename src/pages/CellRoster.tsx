@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
+import { Phone, Download, Image as ImageIcon, Trash2, Edit2, Check, X, Plus, Users } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const CellRoster = () => {
@@ -63,7 +63,17 @@ const CellRoster = () => {
     document.body.removeChild(link);
   };
 
-  if (!activeCell) return <div>Please select a cell group from the sidebar.</div>;
+  if (!activeCell) {
+    return (
+      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '3rem auto' }}>
+        <Users size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
+        <h2 style={{ color: 'var(--text-main)', marginBottom: '0.5rem' }}>Select a Cell Group</h2>
+        <p className="text-muted">
+          To view and manage a cell roster, please select a specific cell group from the dropdown in the sidebar.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="roster-view" style={{ animation: 'var(--transition)' }}>

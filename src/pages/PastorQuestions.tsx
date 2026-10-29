@@ -36,6 +36,7 @@ export default function PastorQuestions() {
 
   // New question form state
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newQuestionCellId, setNewQuestionCellId] = useState('');
   const [newQuestionText, setNewQuestionText] = useState('');
   const [newQuestionDate, setNewQuestionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +103,7 @@ export default function PastorQuestions() {
 
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cellIdToUse = targetCellId || (isAdmin && adminCellFilter !== 'all' ? adminCellFilter : data.cells[0]?.id);
+    const cellIdToUse = targetCellId || newQuestionCellId || (adminCellFilter !== 'all' ? adminCellFilter : data.cells[0]?.id);
     if (!cellIdToUse) {
       alert("Please select a cell group first.");
       return;
@@ -117,6 +118,7 @@ export default function PastorQuestions() {
       await addPastorQuestion(cellIdToUse, newQuestionText, newQuestionDate);
       setNewQuestionText('');
       setNewQuestionDate(format(new Date(), 'yyyy-MM-dd'));
+      setNewQuestionCellId('');
       setShowAddForm(false);
     } catch {
       // Error handled by DataContext notification
@@ -251,8 +253,8 @@ export default function PastorQuestions() {
                     Cell Group
                   </label>
                   <select 
-                    value={adminCellFilter === 'all' ? (data.cells[0]?.id || '') : adminCellFilter} 
-                    onChange={(e) => setAdminCellFilter(e.target.value)}
+                    value={newQuestionCellId || (adminCellFilter !== 'all' ? adminCellFilter : data.cells[0]?.id || '')} 
+                    onChange={(e) => setNewQuestionCellId(e.target.value)}
                     style={{ width: '100%', padding: '0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-main)' }}
                   >
                     {data.cells.map(c => (

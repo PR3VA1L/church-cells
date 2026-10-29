@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { LayoutDashboard, Users, UserCheck, LogOut, Shield, FileText, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, LogOut, Shield, FileText, HelpCircle, BookOpen } from 'lucide-react';
 import LatinCross from './LatinCross';
 
 const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) => {
@@ -102,7 +102,29 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
         />
       </nav>
       
-      <div style={{ marginTop: 'auto', padding: '0.5rem 1rem' }}>
+      <div style={{ marginTop: 'auto', padding: '0.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <a 
+          href="https://github.com/PR3VA1L/church-cells/blob/main/FAQ.md" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-muted)',
+            textDecoration: 'none',
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            transition: 'var(--transition)'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+        >
+          <BookOpen size={20} />
+          <span>FAQ & User Guide</span>
+        </a>
         <NavItem 
           icon={<LogOut size={20} />} 
           label="Logout" 

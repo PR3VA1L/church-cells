@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown, ChevronUp, Save, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Save, CheckCircle2, FileText } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { hasValidScores } from './Dashboard';
 
 const RATING_OPTIONS = [
   { value: 0, label: 'Not Assessed' },
@@ -102,10 +103,23 @@ export default function Assessments() {
       return; 
     }
 
+    // Only persist assessments for members who have actual scores filled in
+    const membersWithScores = members.filter(m => {
+      const memberScores = currentScores[m.id] || {};
+      return hasValidScores(memberScores);
+    });
+
+    if (membersWithScores.length === 0) {
+      if (!autoSaveScores) {
+        alert("Please enter assessment scores for at least one member before saving.");
+      }
+      return;
+    }
+
     setIsSaving(true);
     setSuccessMsg('');
     try {
-      const promises = members.map(m => {
+      const promises = membersWithScores.map(m => {
         const memberScores = currentScores[m.id] || {};
         return saveAssessment({
           id: `${activeCellId}_${m.id}_${currentDate}`,
@@ -158,7 +172,17 @@ export default function Assessments() {
     return { answered: answeredQuestions, total: totalQuestions };
   };
 
-  if (!activeCellId) return <div style={{ padding: '2rem', textAlign: 'center' }}>Please select a cell first.</div>;
+  if (!activeCellId || !cell) {
+    return (
+      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '3rem auto' }}>
+        <FileText size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
+        <h2 style={{ color: 'var(--text-main)', marginBottom: '0.5rem' }}>Select a Cell Group</h2>
+        <p className="text-muted">
+          To conduct or review 4-Pillars spiritual assessments, please select a specific cell group from the dropdown in the sidebar.
+        </p>
+      </div>
+    );
+  }
 
   const pastDates = Array.from(new Set(data.assessments.filter(a => a.cellId === activeCellId).map(a => a.date))).sort().reverse();
 

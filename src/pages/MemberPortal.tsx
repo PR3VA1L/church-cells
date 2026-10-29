@@ -4,6 +4,7 @@ import { format, parseISO, startOfWeek } from 'date-fns';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { CheckCircle2, Save, LogOut, HelpCircle } from 'lucide-react';
 import LatinCross from '../components/LatinCross';
+import { hasValidScores } from './Dashboard';
 
 const RATING_SCALE = [
   { 
@@ -123,6 +124,11 @@ const MemberPortal = () => {
   const handleSave = async () => {
     if (!currentUser?.cellId || !currentUser?.memberId) return;
 
+    if (!hasValidScores(scores)) {
+      alert("Please rate yourself on at least one pillar before saving your assessment.");
+      return;
+    }
+
     for (let pIdx = 0; pIdx < pillars.length; pIdx++) {
       const pillarScores = (scores as any)[pIdx] || {};
       let answeredCount = 0;
@@ -193,9 +199,20 @@ const MemberPortal = () => {
             <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>{cell?.name || 'Your Cell Group'}</p>
           </div>
         </div>
-        <button className="btn btn-outline" onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <LogOut size={16} /> Logout
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <a 
+            href="https://github.com/PR3VA1L/church-cells/blob/main/FAQ.md" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="btn btn-outline" 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+          >
+            <HelpCircle size={16} /> FAQ & Guide
+          </a>
+          <button className="btn btn-outline" onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       </header>
 
       {trendData.length > 0 && (

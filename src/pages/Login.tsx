@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
 import { useData } from '../context/DataContext';
 import LatinCross from '../components/LatinCross';
+import { HelpCircle } from 'lucide-react';
 
 const Login = () => {
   const { data, login, updateCellPassword, updateCellEmail, notifyAdminForReset } = useData();
@@ -370,6 +371,17 @@ const Login = () => {
             )}
           </form>
         )}
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+          <a 
+            href="https://github.com/PR3VA1L/church-cells/blob/main/FAQ.md" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <HelpCircle size={14} /> Need help? View App FAQ & User Guide
+          </a>
+        </div>
       </div>
     </div>
   );
