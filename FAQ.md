@@ -127,3 +127,25 @@ The leader can quickly add or correct the number on the **Cell Roster** tab.
 1. The Pastor addresses and answers the questions verbally during Sunday church services, leadership gatherings, or other church meetings.
 2. Once the question has been addressed by the Pastor, the **Cell Leader** goes to **"Key Biblical Questions"** and clicks **"Mark as Answered in Church"**.
 3. Leaders can also optionally click **"Add Teaching Notes / Summary"** to write down scriptures or key takeaways shared by the Pastor.
+
+---
+
+## 🌱 6. Empowerment Needs & Leader Feedback
+
+### Q: What is the "Empowerment Needs & Leader Feedback" section?
+**A:** It is a dedicated feedback channel between Cell Leaders and Church Administration:
+* **Empowerment Needs**: A free text box where cell leaders highlight what their cell requires to grow and be strengthened (e.g. leadership mentoring, Bible study materials, venue assistance, follow-up tools, or welfare support).
+* **Other Points & Feedback**: A free text box for general cell updates, testimonies, praise reports, challenges, or points to share with church leadership.
+
+### Q: Where do Cell Leaders find and update this?
+**A:** 
+1. Log in as **Cell Leader**.
+2. Go to the **Dashboard**.
+3. Under the **"Cell Empowerment Needs & Leader Feedback"** section, type your needs and points into the free text boxes.
+4. Click **"Save Needs & Feedback"**. The timestamp updates automatically to confirm your submission has reached church leadership.
+
+### Q: Where does Church Administration see these submissions?
+**A:** Church administrators receive a live **Dynamic Consolidated Report**:
+* **On the Dashboard:** In the global overview, administrators see the **"Cell Empowerment Needs & Leader Feedback Report"** table showing all cells, their latest submitted needs, other feedback, and timestamps.
+* **On the Admin Panel:** Administrators can also review the full table and even edit/add notes directly on behalf of a cell.
+* **Exporting:** Administrators can click **"Export Report (CSV)"** at any time to download an organized spreadsheet for leadership meetings.

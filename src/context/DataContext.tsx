@@ -100,6 +100,14 @@ export interface PastorQuestion {
   timestamp: string;
 }
 
+export interface CellFeedback {
+  cellId: string;
+  empowermentNeeds: string;
+  otherPoints: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 export interface AppData {
   cells: Cell[];
   pillarQuestions: PillarQuestion[];
@@ -107,6 +115,7 @@ export interface AppData {
   meetings: Meeting[];
   assessments: Assessment[];
   pastorQuestions: PastorQuestion[];
+  cellFeedback: CellFeedback[];
 }
 
 /**
@@ -171,6 +180,7 @@ interface DataContextType {
   updatePastorQuestion: (questionId: string, question: string) => Promise<void>;
   deletePastorQuestion: (questionId: string) => Promise<void>;
   answerPastorQuestion: (questionId: string, answer: string, status?: 'pending' | 'answered') => Promise<void>;
+  saveCellFeedback: (cellId: string, empowermentNeeds: string, otherPoints: string, updatedBy?: string) => Promise<void>;
   loading: boolean;
   notifications: NotificationMsg[];
   addNotification: (message: string, type: 'error' | 'success' | 'info') => void;
@@ -185,7 +195,8 @@ const defaultData: AppData = {
   roster: [],
   meetings: [],
   assessments: [],
-  pastorQuestions: []
+  pastorQuestions: [],
+  cellFeedback: []
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -262,6 +273,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           ? pastorQuestionsSetting.pillar_questions
           : [];
 
+        const feedbackSetting = settingsRes.data?.find((s: any) => s.id === 'cell_feedback');
+        const rawFeedback = feedbackSetting?.pillar_questions;
+        const loadedCellFeedback: CellFeedback[] = Array.isArray(rawFeedback)
+          ? rawFeedback
+          : rawFeedback && typeof rawFeedback === 'object'
+            ? Object.values(rawFeedback)
+            : [];
+
         setData({
           cells: (cellsRes.data?.map((c: any) => ({ ...c, leaderName: c.leadername })) || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
           roster: rosterRes.data?.map((r: any) => ({ ...r, cellId: r.cellid })) || [],
@@ -278,7 +297,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           }) || []),
           assessments: assessmentsRes.data?.map((r: any) => ({ ...r, cellId: r.cellid, memberId: r.memberid })) || [],
           pillarQuestions: adminSettings?.pillar_questions || DEFAULT_PILLAR_QUESTIONS,
-          pastorQuestions: loadedPastorQuestions.sort((a, b) => new Date(b.date || b.timestamp).getTime() - new Date(a.date || a.timestamp).getTime())
+          pastorQuestions: loadedPastorQuestions.sort((a, b) => new Date(b.date || b.timestamp).getTime() - new Date(a.date || a.timestamp).getTime()),
+          cellFeedback: loadedCellFeedback
         });
       } catch (err) {
         console.error("Failed to fetch data", err);
@@ -803,6 +823,43 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const saveCellFeedback = async (cellId: string, empowermentNeeds: string, otherPoints: string, updatedBy?: string) => {
+    const prevFeedback = data.cellFeedback || [];
+    const now = new Date().toISOString();
+    const existingIndex = prevFeedback.findIndex(f => f.cellId === cellId);
+    const newEntry: CellFeedback = {
+      cellId,
+      empowermentNeeds: empowermentNeeds.trim(),
+      otherPoints: otherPoints.trim(),
+      updatedAt: now,
+      updatedBy: updatedBy || ''
+    };
+
+    let updatedList: CellFeedback[];
+    if (existingIndex >= 0) {
+      updatedList = [...prevFeedback];
+      updatedList[existingIndex] = newEntry;
+    } else {
+      updatedList = [newEntry, ...prevFeedback];
+    }
+
+    setData(prev => ({ ...prev, cellFeedback: updatedList }));
+
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        id: 'cell_feedback',
+        adminpassword: '',
+        pillar_questions: updatedList
+      });
+      if (error) throw error;
+      addNotification("Cell empowerment needs & feedback saved.", "success");
+    } catch (err: any) {
+      setData(prev => ({ ...prev, cellFeedback: prevFeedback }));
+      addNotification("Failed to save feedback: " + err.message, "error");
+      throw err;
+    }
+  };
+
   return (
     <DataContext.Provider value={{ 
       data, setData, 
@@ -810,7 +867,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       activeCellId, setActiveCellId, 
       updateMemberStatus, updateMemberPhone, updateMember, removeMember, addVisitor, addMember, addPerson, saveMeeting, saveAssessment,
       createCell, deleteCell, updateCellName, updateCellPassword, updateCellEmail, notifyAdminForReset, clearAdminResetNotification, updateAdminPassword, updateCellQuestions, updateCellStopWords, updatePillarQuestions,
-      addPastorQuestion, updatePastorQuestion, deletePastorQuestion, answerPastorQuestion,
+      addPastorQuestion, updatePastorQuestion, deletePastorQuestion, answerPastorQuestion, saveCellFeedback,
       loading, notifications, addNotification, removeNotification
     }}>
       {children}

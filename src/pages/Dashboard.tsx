@@ -5,6 +5,8 @@ import html2canvas from 'html2canvas';
 import { parseISO, startOfMonth, startOfYear, isAfter, isBefore, endOfDay, startOfDay, subDays, format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LatinCross from '../components/LatinCross';
+import { CellFeedbackCard } from '../components/CellFeedbackCard';
+import { CellFeedbackReport } from '../components/CellFeedbackReport';
 
 export const hasValidScores = (scores: any): boolean => {
   if (!scores || typeof scores !== 'object') return false;
@@ -464,6 +466,11 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Cell Leader Empowerment Needs & Other Points */}
+      {targetCellId && (
+        <CellFeedbackCard cellId={targetCellId} />
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginBottom: '2.5rem' }}>
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ marginBottom: '1.5rem' }}>
@@ -532,6 +539,10 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {!targetCellId && (
+        <CellFeedbackReport />
+      )}
 
       {!targetCellId && (
         <div className="glass-panel" style={{ padding: '1.5rem' }}>

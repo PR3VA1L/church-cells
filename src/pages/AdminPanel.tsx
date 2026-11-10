@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { CellFeedbackReport } from '../components/CellFeedbackReport';
 
 const AdminPanel = () => {
   const { data, createCell, updateCellName, updateCellPassword, addMember, deleteCell, updatePillarQuestions, updateAdminPassword, clearAdminResetNotification } = useData();
@@ -270,6 +271,11 @@ const AdminPanel = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Cell Empowerment Needs & Feedback Report */}
+        <div style={{ gridColumn: '1 / -1' }}>
+          <CellFeedbackReport />
         </div>
 
         {/* Manage Global Pillar Questions */}
